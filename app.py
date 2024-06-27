@@ -122,18 +122,19 @@ embedding_weights = transformer_model.embedding.weight.detach().numpy()
 # Verify the dimensions of the embedding layer's weights
 st.write(f"Embedding layer weights shape: {embedding_weights.shape}")
 
-# We need to sum across the rows to get the importance per feature
+# We need to sum across the columns to get the importance per feature
 importances = np.sum(np.abs(embedding_weights), axis=0)
 
 # Debug prints to check lengths
 st.write(f"Number of features: {len(input_data.columns)}")
 st.write(f"Number of importance values: {len(importances)}")
 
-# Check if lengths match
-if len(input_data.columns) != len(importances):
+# Ensure the lengths match before creating DataFrame
+if len(input_data.columns) == len(importances):
+    feature_importances = pd.DataFrame({'feature': input_data.columns, 'importance': importances})
+else:
     st.write("Mismatch in lengths of features and importances!")
-
-feature_importances = pd.DataFrame({'feature': input_data.columns, 'importance': importances})
+    feature_importances = pd.DataFrame()
 
 # Sort the feature importances
 feature_importances = feature_importances.sort_values(by='importance', ascending=False)
@@ -145,3 +146,4 @@ ax.set_xlabel('Importance')
 ax.set_ylabel('Feature')
 ax.set_title('Risk Factors / Feature Importances (Transformer)')
 st.pyplot(fig)
+
