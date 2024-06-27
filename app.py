@@ -1,83 +1,54 @@
 import streamlit as st
-import pandas as pd
 import torch
-import torch.nn as nn
 import torch.nn.functional as F
-import matplotlib.pyplot as plt
+import pandas as pd
 import numpy as np
-import joblib
-from sklearn.metrics import roc_curve, auc
+import shap
+import matplotlib.pyplot as plt
 
-# Define the model
-class TransformerModel(nn.Module):
-    def __init__(self, input_dim, num_classes, d_model=128, max_seq_length=1, nhead=8, num_layers=4):
-        super(TransformerModel, self).__init__()
-        self.embedding = nn.Linear(input_dim, d_model)
-        self.pos_encoder = nn.Parameter(torch.zeros(1, max_seq_length, d_model), requires_grad=False)
-        encoder_layers = nn.TransformerEncoderLayer(d_model=d_model, nhead=nhead, dim_feedforward=512)
-        self.transformer_encoder = nn.TransformerEncoder(encoder_layers, num_layers=num_layers)
-        self.fc1 = nn.Linear(d_model, 64)
-        self.fc2 = nn.Linear(64, num_classes)
-        self.max_seq_length = max_seq_length
-        self.dropout = nn.Dropout(0.3)
-
-    def forward(self, x):
-        x = self.embedding(x)
-        batch_size, seq_length, _ = x.size()
-        pos_encoding = self.pos_encoder[:, :seq_length, :].expand(batch_size, -1, -1).to(x.device)
-        x = x + pos_encoding
-        x = x.transpose(0, 1)
-        x = self.transformer_encoder(x)
-        x = x.mean(dim=0)
-        x = self.dropout(F.relu(self.fc1(x)))
-        x = self.fc2(x)
-        return x
-
-# Load the model and data
+# Load the model and scaler
 transformer_model = TransformerModel(input_dim=15, num_classes=2)
 transformer_model.load_state_dict(torch.load('transformer_model.pth', map_location=torch.device('cpu')))
 transformer_model.eval()
-
-# Load the scaler
 scaler = joblib.load('scaler.pkl')
 
-# Load the evaluation metrics
-transformer_labels = np.load('transformer_labels.npy')
-transformer_probs = np.load('transformer_probs.npy')
+# Function to compute SHAP values
+def compute_shap_values(model, input_tensor):
+    # Use DeepExplainer for the transformer model
+    explainer = shap.DeepExplainer(model, input_tensor)
+    shap_values = explainer.shap_values(input_tensor)
+    return shap_values
 
-# Streamlit UI
-st.title("Cardiovascular Disease Prediction (Transformer)")
+# Sidebar for user input parameters
+st.sidebar.header('Please Select Your Parameters')
+def user_input_features():
+    age = st.sidebar.slider('Age', 32, 81, 54)
+    totchol = st.sidebar.slider('Total Cholesterol', 107, 696, 200)
+    sysbp = st.sidebar.slider('Systolic Blood Pressure', 83, 295, 140)
+    diabp = st.sidebar.slider('Diastolic Blood Pressure', 30, 150, 89)
+    bmi = st.sidebar.slider('BMI', 14.43, 56.80, 26.77)
+    cursmoke = st.sidebar.selectbox('Current Smoker', [0, 1])
+    glucose = st.sidebar.slider('Glucose', 39, 478, 117)
+    diabetes = st.sidebar.selectbox('Diabetes', [0, 1])
+    heartrate = st.sidebar.slider('Heart Rate', 37, 220, 91)
+    cigpday = st.sidebar.slider('Cigarettes Per Day', 0, 90, 20)
+    bpmeds = st.sidebar.selectbox('On BP Meds', [0, 1])
+    stroke = st.sidebar.selectbox('Stroke', [0, 1])
+    hyperten = st.sidebar.selectbox('Hypertension', [0, 1])
+    ldlc = st.sidebar.slider('LDL Cholesterol', 0, 208, 100)
+    hdlc = st.sidebar.slider('HDL Cholesterol', 0, 100, 50)
+    data = {'AGE': age, 'TOTCHOL': totchol, 'SYSBP': sysbp, 'DIABP': diabp, 'BMI': bmi,
+            'CURSMOKE': cursmoke, 'GLUCOSE': glucose, 'DIABETES': diabetes, 'HEARTRTE': heartrate,
+            'CIGPDAY': cigpday, 'BPMEDS': bpmeds, 'STROKE': stroke, 'HYPERTEN': hyperten,
+            'LDLC': ldlc, 'HDLC': hdlc}
+    features = pd.DataFrame(data, index=[0])
+    return features
 
-# User inputs
-age = st.sidebar.slider("Age", 32, 81, 54)
-totchol = st.sidebar.slider("Total Cholesterol", 107, 696, 200)
-sysbp = st.sidebar.slider("Systolic Blood Pressure", 83, 295, 140)
-diabp = st.sidebar.slider("Diastolic Blood Pressure", 30, 150, 89)
-bmi = st.sidebar.slider("BMI", 14.43, 56.8, 26.77)
-cursmoke = st.sidebar.selectbox("Current Smoker", [0, 1])
-glucose = st.sidebar.slider("Glucose", 39, 478, 117)
-diabetes = st.sidebar.selectbox("Diabetes", [0, 1])
-heartrate = st.sidebar.slider("Heart Rate", 37, 220, 91)
-cigpday = st.sidebar.slider("Cigarettes Per Day", 0, 90, 20)
-bpmeds = st.sidebar.selectbox("On BP Meds", [0, 1])
-stroke = st.sidebar.selectbox("Stroke", [0, 1])
-hyperten = st.sidebar.selectbox("Hypertension", [0, 1])
-ldlc = st.sidebar.slider("LDL Cholesterol", 0, 208, 100)
-hdlc = st.sidebar.slider("HDL Cholesterol", 0, 100, 50)
+input_data = user_input_features()
 
-# Create input dataframe
-input_data = pd.DataFrame({
-    'AGE': [age], 'TOTCHOL': [totchol], 'SYSBP': [sysbp], 'DIABP': [diabp], 'BMI': [bmi],
-    'CURSMOKE': [cursmoke], 'GLUCOSE': [glucose], 'DIABETES': [diabetes], 'HEARTRTE': [heartrate],
-    'CIGPDAY': [cigpday], 'BPMEDS': [bpmeds], 'STROKE': [stroke], 'HYPERTEN': [hyperten],
-    'LDLC': [ldlc], 'HDLC': [hdlc]
-})
-
-# Scale the input
-input_scaled = scaler.transform(input_data)
-
-# Convert to tensor
-input_tensor = torch.tensor(input_scaled, dtype=torch.float32)
+# Apply scaling
+input_data_scaled = scaler.transform(input_data)
+input_tensor = torch.tensor(input_data_scaled, dtype=torch.float32)
 
 # Prediction button
 if st.sidebar.button("PREDICT NOW"):
@@ -86,64 +57,28 @@ if st.sidebar.button("PREDICT NOW"):
         _, prediction = torch.max(output, 1)
         prediction_proba = F.softmax(output, dim=1).numpy()
 
-    st.subheader("Prediction")
+    st.subheader('Prediction')
     if prediction.item() == 1:
-        st.write("Cardiovascular Disease")
+        st.write("Cardiovascular Disease Detected")
     else:
         st.write("No Cardiovascular Disease")
 
-    st.subheader("Prediction Probability")
-    prob_df = pd.DataFrame(prediction_proba, columns=["No CVD", "CVD"])
-    st.write(prob_df)
-    st.bar_chart(prob_df.T)
+    st.subheader('Prediction Probability')
+    proba_df = pd.DataFrame(prediction_proba, columns=['No CVD', 'CVD'])
+    st.write(proba_df)
+    fig, ax = plt.subplots()
+    ax.bar(proba_df.columns, proba_df.iloc[0])
+    ax.set_xlabel('Prediction')
+    ax.set_ylabel('Probability')
+    st.pyplot(fig)
 
-# ROC Curve
-st.subheader("Model Performance (ROC Curve)")
-fpr, tpr, _ = roc_curve(transformer_labels, transformer_probs)
-roc_auc = auc(fpr, tpr)
-plt.figure()
-plt.plot(fpr, tpr, color='blue', lw=2, label=f'Transformer (AUC = {roc_auc:.4f})')
-plt.plot([0, 1], [0, 1], color='navy', lw=2, linestyle='--')
-plt.xlim([0.0, 1.0])
-plt.ylim([0.0, 1.05])
-plt.xlabel('False Positive Rate')
-plt.ylabel('True Positive Rate')
-plt.title('Receiver Operating Characteristic (ROC) Curve')
-plt.legend(loc="lower right")
-st.pyplot(plt)
+    # Model Performance (ROC Curve)
+    st.subheader('Model Performance (ROC Curve)')
+    st.image('roc_curve.png')
 
-# Feature Importances
-st.subheader("Feature Importances (Transformer)")
-
-# Assuming the transformer_model has a linear layer named 'embedding'
-# Get the absolute values of the weights for each feature and sum across the embedding dimensions
-embedding_weights = transformer_model.embedding.weight.detach().numpy()
-
-# Verify the dimensions of the embedding layer's weights
-st.write(f"Embedding layer weights shape: {embedding_weights.shape}")
-
-# We need to sum across the columns to get the importance per feature
-importances = np.sum(np.abs(embedding_weights), axis=0)
-
-# Debug prints to check lengths
-st.write(f"Number of features: {len(input_data.columns)}")
-st.write(f"Number of importance values: {len(importances)}")
-
-# Ensure the lengths match before creating DataFrame
-if len(input_data.columns) == len(importances):
-    feature_importances = pd.DataFrame({'feature': input_data.columns, 'importance': importances})
-else:
-    st.write("Mismatch in lengths of features and importances!")
-    feature_importances = pd.DataFrame()
-
-# Sort the feature importances
-feature_importances = feature_importances.sort_values(by='importance', ascending=False)
-
-# Plot the feature importances
-fig, ax = plt.subplots()
-ax.barh(feature_importances['feature'], feature_importances['importance'])
-ax.set_xlabel('Importance')
-ax.set_ylabel('Feature')
-ax.set_title('Risk Factors / Feature Importances (Transformer)')
-st.pyplot(fig)
-
+    # Feature Importances using SHAP
+    st.subheader("Feature Importances (Transformer)")
+    shap_values = compute_shap_values(transformer_model, input_tensor)
+    shap_values = shap_values[0]  # For classification, shap_values is a list
+    shap.summary_plot(shap_values, input_data, plot_type="bar", feature_names=input_data.columns.tolist())
+    st.pyplot(bbox_inches='tight')
