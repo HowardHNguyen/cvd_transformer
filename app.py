@@ -117,6 +117,15 @@ st.subheader("Feature Importances (Transformer)")
 
 # Assuming the transformer_model has a linear layer named 'embedding'
 importances = np.abs(transformer_model.embedding.weight.detach().numpy().flatten())
+
+# Debug prints to check lengths
+st.write(f"Number of features: {len(input_data.columns)}")
+st.write(f"Number of importance values: {len(importances)}")
+
+# Check if lengths match
+if len(input_data.columns) != len(importances):
+    st.write("Mismatch in lengths of features and importances!")
+
 feature_importances = pd.DataFrame({'feature': input_data.columns, 'importance': importances})
 
 # Sort the feature importances
