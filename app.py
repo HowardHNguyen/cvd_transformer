@@ -116,8 +116,13 @@ st.pyplot(plt)
 st.subheader("Feature Importances (Transformer)")
 
 # Assuming the transformer_model has a linear layer named 'embedding'
-# Sum the absolute values of the weights for each feature to get a single importance value per feature
-importances = np.sum(np.abs(transformer_model.embedding.weight.detach().numpy()), axis=1)
+# Get the absolute values of the weights for each feature and sum across the embedding dimensions
+embedding_weights = transformer_model.embedding.weight.detach().numpy()
+
+# Verify the dimensions of the embedding layer's weights
+st.write(f"Embedding layer weights shape: {embedding_weights.shape}")
+
+importances = np.sum(np.abs(embedding_weights), axis=1)
 
 # Debug prints to check lengths
 st.write(f"Number of features: {len(input_data.columns)}")
