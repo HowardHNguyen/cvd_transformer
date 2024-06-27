@@ -1,20 +1,20 @@
 import streamlit as st
+import pandas as pd
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
-import joblib
-import numpy as np
-import pandas as pd
 import matplotlib.pyplot as plt
+import numpy as np
+import joblib
 from sklearn.metrics import roc_curve, auc
 
-# Define the Transformer model class
+# Define the model
 class TransformerModel(nn.Module):
-    def __init__(self, input_dim, num_classes, d_model=128, max_seq_length=1, nhead=8, num_layers=4):
+    def __init__(self, input_dim, num_classes, d_model=128, max_seq_length=1, nhead=8, num_layers=3):
         super(TransformerModel, self).__init__()
         self.embedding = nn.Linear(input_dim, d_model)
         self.pos_encoder = nn.Parameter(torch.zeros(1, max_seq_length, d_model), requires_grad=False)
-        encoder_layers = nn.TransformerEncoderLayer(d_model=d_model, nhead=nhead, dim_feedforward=512, batch_first=True)
+        encoder_layers = nn.TransformerEncoderLayer(d_model=d_model, nhead=nhead, dim_feedforward=512)
         self.transformer_encoder = nn.TransformerEncoder(encoder_layers, num_layers=num_layers)
         self.fc1 = nn.Linear(d_model, 64)
         self.fc2 = nn.Linear(64, num_classes)
@@ -24,13 +24,11 @@ class TransformerModel(nn.Module):
     def forward(self, x):
         x = self.embedding(x)
         batch_size, seq_length, _ = x.size()
-        if seq_length > self.max_seq_length:
-            raise ValueError(f"Input sequence length ({seq_length}) exceeds the maximum sequence length ({self.max_seq_length}).")
         pos_encoding = self.pos_encoder[:, :seq_length, :].expand(batch_size, -1, -1).to(x.device)
         x = x + pos_encoding
-        x = x.transpose(1, 2)
+        x = x.transpose(0, 1)
         x = self.transformer_encoder(x)
-        x = x.mean(dim=1)
+        x = x.mean(dim=0)
         x = self.dropout(F.relu(self.fc1(x)))
         x = self.fc2(x)
         return x
@@ -43,55 +41,43 @@ transformer_model.eval()
 # Load the scaler
 scaler = joblib.load('scaler.pkl')
 
-# Load the test labels and predicted probabilities
+# Load the evaluation metrics
 transformer_labels = np.load('transformer_labels.npy')
 transformer_probs = np.load('transformer_probs.npy')
 
-# Streamlit app
+# Streamlit UI
 st.title("Cardiovascular Disease Prediction (Transformer)")
 
-# User input parameters
-st.sidebar.header("Please Select Your Parameters")
+# User inputs
 age = st.sidebar.slider("Age", 32, 81, 54)
 totchol = st.sidebar.slider("Total Cholesterol", 107, 696, 200)
 sysbp = st.sidebar.slider("Systolic Blood Pressure", 83, 295, 140)
 diabp = st.sidebar.slider("Diastolic Blood Pressure", 30, 150, 89)
-bmi = st.sidebar.slider("BMI", 14.43, 56.80, 26.77)
+bmi = st.sidebar.slider("BMI", 14.43, 56.8, 26.77)
 cursmoke = st.sidebar.selectbox("Current Smoker", [0, 1])
 glucose = st.sidebar.slider("Glucose", 39, 478, 117)
 diabetes = st.sidebar.selectbox("Diabetes", [0, 1])
-heartrate = st.sidebar.slider("Heart Rate", 37, 220, 80)
+heartrate = st.sidebar.slider("Heart Rate", 37, 220, 91)
 cigpday = st.sidebar.slider("Cigarettes Per Day", 0, 90, 20)
-bpm = st.sidebar.selectbox("On BP Meds", [0, 1])
+bpmeds = st.sidebar.selectbox("On BP Meds", [0, 1])
 stroke = st.sidebar.selectbox("Stroke", [0, 1])
 hyperten = st.sidebar.selectbox("Hypertension", [0, 1])
-ldl = st.sidebar.slider("LDL Cholesterol", 0, 208, 100)
-hdl = st.sidebar.slider("HDL Cholesterol", 0, 100, 50)
+ldlc = st.sidebar.slider("LDL Cholesterol", 0, 208, 100)
+hdlc = st.sidebar.slider("HDL Cholesterol", 0, 100, 50)
 
-# Prepare user input for prediction
-user_data = pd.DataFrame({
-    'AGE': [age],
-    'TOTCHOL': [totchol],
-    'SYSBP': [sysbp],
-    'DIABP': [diabp],
-    'BMI': [bmi],
-    'CURSMOKE': [cursmoke],
-    'GLUCOSE': [glucose],
-    'DIABETES': [diabetes],
-    'HEARTRTE': [heartrate],
-    'CIGPDAY': [cigpday],
-    'BPMEDS': [bpm],
-    'STROKE': [stroke],
-    'HYPERTEN': [hyperten],
-    'LDLC': [ldl],
-    'HDLC': [hdl]
+# Create input dataframe
+input_data = pd.DataFrame({
+    'AGE': [age], 'TOTCHOL': [totchol], 'SYSBP': [sysbp], 'DIABP': [diabp], 'BMI': [bmi],
+    'CURSMOKE': [cursmoke], 'GLUCOSE': [glucose], 'DIABETES': [diabetes], 'HEARTRTE': [heartrate],
+    'CIGPDAY': [cigpday], 'BPMEDS': [bpmeds], 'STROKE': [stroke], 'HYPERTEN': [hyperten],
+    'LDLC': [ldlc], 'HDLC': [hdlc]
 })
 
-# Scale the user inputs
-user_data_scaled = scaler.transform(user_data)
+# Scale the input
+input_scaled = scaler.transform(input_data)
 
-# Convert user inputs to tensor
-input_tensor = torch.tensor(user_data_scaled, dtype=torch.float32)
+# Convert to tensor
+input_tensor = torch.tensor(input_scaled, dtype=torch.float32)
 
 # Prediction button
 if st.sidebar.button("PREDICT NOW"):
@@ -100,47 +86,41 @@ if st.sidebar.button("PREDICT NOW"):
         _, prediction = torch.max(output, 1)
         prediction_proba = F.softmax(output, dim=1).numpy()
 
-    st.write("## Prediction")
-    if prediction.item() == 0:
-        st.write("### No Cardiovascular Disease")
+    st.subheader("Prediction")
+    if prediction.item() == 1:
+        st.write("Cardiovascular Disease")
     else:
-        st.write("### Cardiovascular Disease")
+        st.write("No Cardiovascular Disease")
 
-    st.write("### Prediction Probability")
-    st.write(pd.DataFrame(prediction_proba, columns=["No CVD", "CVD"]))
+    st.subheader("Prediction Probability")
+    prob_df = pd.DataFrame(prediction_proba, columns=["No CVD", "CVD"])
+    st.write(prob_df)
+    st.bar_chart(prob_df.T)
 
-    # Plot prediction probability
-    st.write("### Prediction Probability")
-    fig, ax = plt.subplots()
-    ax.bar(["No CVD", "CVD"], prediction_proba[0], color=["blue", "red"])
-    ax.set_ylim([0, 1])
-    ax.set_ylabel("Probability")
-    st.pyplot(fig)
+# ROC Curve
+st.subheader("Model Performance (ROC Curve)")
+fpr, tpr, _ = roc_curve(transformer_labels, transformer_probs)
+roc_auc = auc(fpr, tpr)
+plt.figure()
+plt.plot(fpr, tpr, color='blue', lw=2, label=f'Transformer (AUC = {roc_auc:.4f})')
+plt.plot([0, 1], [0, 1], color='navy', lw=2, linestyle='--')
+plt.xlim([0.0, 1.0])
+plt.ylim([0.0, 1.05])
+plt.xlabel('False Positive Rate')
+plt.ylabel('True Positive Rate')
+plt.title('Receiver Operating Characteristic (ROC) Curve')
+plt.legend(loc="lower right")
+st.pyplot(plt)
 
-    # Plot ROC Curve
-    st.write("### Model Performance (ROC Curve)")
-    fpr, tpr, _ = roc_curve(transformer_labels, transformer_probs)
-    roc_auc = auc(fpr, tpr)
-    fig, ax = plt.subplots()
-    ax.plot(fpr, tpr, color='blue', lw=2, label=f'Transformer (AUC = {roc_auc:.4f})')
-    ax.plot([0, 1], [0, 1], color='navy', lw=2, linestyle='--')
-    ax.set_xlim([0.0, 1.0])
-    ax.set_ylim([0.0, 1.05])
-    ax.set_xlabel('False Positive Rate')
-    ax.set_ylabel('True Positive Rate')
-    ax.set_title('Receiver Operating Characteristic (ROC) Curve')
-    ax.legend(loc="lower right")
-    st.pyplot(fig)
+# Feature Importances
+st.subheader("Feature Importances (Transformer)")
+importances = np.abs(transformer_model.embedding.weight.detach().numpy()).mean(axis=1)
+feature_importances = pd.DataFrame({'feature': input_data.columns, 'importance': importances})
+feature_importances = feature_importances.sort_values(by='importance', ascending=False)
 
-    # Feature importances
-    st.write("### Feature Importances")
-    importances = transformer_model.fc1.weight.detach().cpu().numpy().flatten()
-    feature_names = user_data.columns
-    importance_df = pd.DataFrame({'Feature': feature_names, 'Importance': importances})
-    importance_df = importance_df.sort_values(by='Importance', ascending=False)
-    fig, ax = plt.subplots()
-    ax.barh(importance_df['Feature'], importance_df['Importance'], color='blue')
-    ax.set_xlabel('Importance')
-    ax.set_ylabel('Feature')
-    ax.set_title('Risk Factors / Feature Importances (Transformer)')
-    st.pyplot(fig)
+fig, ax = plt.subplots()
+ax.barh(feature_importances['feature'], feature_importances['importance'])
+ax.set_xlabel('Importance')
+ax.set_ylabel('Feature')
+ax.set_title('Risk Factors / Feature Importances (Transformer)')
+st.pyplot(fig)
