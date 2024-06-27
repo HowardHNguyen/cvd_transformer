@@ -14,7 +14,7 @@ class TransformerModel(nn.Module):
         super(TransformerModel, self).__init__()
         self.embedding = nn.Linear(input_dim, d_model)
         self.pos_encoder = nn.Parameter(torch.zeros(1, max_seq_length, d_model), requires_grad=False)
-        encoder_layers = nn.TransformerEncoderLayer(d_model=d_model, nhead=nhead, dim_feedforward=512)
+        encoder_layers = nn.TransformerEncoderLayer(d_model=d_model, nhead=nhead, dim_feedforward=512, batch_first=True)
         self.transformer_encoder = nn.TransformerEncoder(encoder_layers, num_layers=num_layers)
         self.fc1 = nn.Linear(d_model, 64)
         self.fc2 = nn.Linear(64, num_classes)
@@ -28,9 +28,9 @@ class TransformerModel(nn.Module):
             raise ValueError(f"Input sequence length ({seq_length}) exceeds the maximum sequence length ({self.max_seq_length}).")
         pos_encoding = self.pos_encoder[:, :seq_length, :].expand(batch_size, -1, -1).to(x.device)
         x = x + pos_encoding
-        x = x.transpose(0, 1)
+        x = x.transpose(1, 2)
         x = self.transformer_encoder(x)
-        x = x.mean(dim=0)
+        x = x.mean(dim=1)  # Change dim from 0 to 1
         x = self.dropout(F.relu(self.fc1(x)))
         x = self.fc2(x)
         return x
@@ -142,5 +142,5 @@ if st.sidebar.button("PREDICT NOW"):
     ax.barh(importance_df['Feature'], importance_df['Importance'], color='blue')
     ax.set_xlabel('Importance')
     ax.set_ylabel('Feature')
-    ax.set_title('Feature Importances (Transformer)')
+    ax.set_title('Risk Factors / Feature Importances (Transformer)')
     st.pyplot(fig)
