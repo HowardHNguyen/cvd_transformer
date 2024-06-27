@@ -50,15 +50,15 @@ transformer_probs = np.load('transformer_probs.npy')
 # Streamlit app
 st.title("Cardiovascular Disease Prediction (Transformer)")
 
-# Define user input fields
+# User input parameters
 st.sidebar.header("Please Select Your Parameters")
 age = st.sidebar.slider("Age", 32, 81, 54)
 totchol = st.sidebar.slider("Total Cholesterol", 107, 696, 200)
-sysbp = st.sidebar.slider("Systolic Blood Pressure", 83, 295, 130)
-diabp = st.sidebar.slider("Diastolic Blood Pressure", 30, 150, 82)
-bmi = st.sidebar.slider("BMI", 14.43, 56.8, 28.75)
+sysbp = st.sidebar.slider("Systolic Blood Pressure", 83, 295, 140)
+diabp = st.sidebar.slider("Diastolic Blood Pressure", 30, 150, 89)
+bmi = st.sidebar.slider("BMI", 14.43, 56.80, 26.77)
 cursmoke = st.sidebar.selectbox("Current Smoker", [0, 1])
-glucose = st.sidebar.slider("Glucose", 39, 478, 98)
+glucose = st.sidebar.slider("Glucose", 39, 478, 117)
 diabetes = st.sidebar.selectbox("Diabetes", [0, 1])
 heartrate = st.sidebar.slider("Heart Rate", 37, 220, 80)
 cigpday = st.sidebar.slider("Cigarettes Per Day", 0, 90, 20)
