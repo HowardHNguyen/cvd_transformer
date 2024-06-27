@@ -8,6 +8,32 @@ import joblib
 from sklearn.metrics import accuracy_score, roc_curve, auc
 import matplotlib.pyplot as plt
 
+class TransformerModel(nn.Module):
+    def __init__(self, input_dim, num_classes, d_model=128, max_seq_length=1, nhead=8, num_layers=3):
+        super(TransformerModel, self).__init__()
+        self.embedding = nn.Linear(input_dim, d_model)
+        self.pos_encoder = nn.Parameter(torch.zeros(1, max_seq_length, d_model), requires_grad=False)
+        encoder_layers = nn.TransformerEncoderLayer(d_model=d_model, nhead=nhead, dim_feedforward=512)
+        self.transformer_encoder = nn.TransformerEncoder(encoder_layers, num_layers=num_layers)
+        self.fc1 = nn.Linear(d_model, 64)
+        self.fc2 = nn.Linear(64, num_classes)
+        self.max_seq_length = max_seq_length
+        self.dropout = nn.Dropout(0.3)
+
+    def forward(self, x):
+        x = self.embedding(x)
+        batch_size, seq_length, _ = x.size()
+        if seq_length > self.max_seq_length:
+            raise ValueError(f"Input sequence length ({seq_length}) exceeds the maximum sequence length ({self.max_seq_length}).")
+        pos_encoding = self.pos_encoder[:, :seq_length, :].expand(batch_size, -1, -1).to(x.device)
+        x = x + pos_encoding
+        x = x.transpose(0, 1)
+        x = self.transformer_encoder(x)
+        x = x.mean(dim=0)
+        x = self.dropout(F.relu(self.fc1(x)))
+        x = self.fc2(x)
+        return x
+
 # Load the scaler and model
 scaler = joblib.load('scaler.pkl')
 model = TransformerModel(input_dim=15, num_classes=2)
