@@ -131,8 +131,9 @@ if st.sidebar.button("PREDICT NOW"):
     st.pyplot(plt)
     
     # Feature Importance
-    explainer = shap.DeepExplainer(transformer_model, torch.tensor(scaler.transform(data.iloc[:, :-1].values), dtype=torch.float32).unsqueeze(1))
-    shap_values = explainer.shap_values(torch.tensor(input_data, dtype=torch.float32).unsqueeze(1))
+    background = torch.tensor(scaler.transform(data.iloc[:, :-1].values), dtype=torch.float32).unsqueeze(1)
+    explainer = shap.DeepExplainer(transformer_model, background)
+    shap_values = explainer.shap_values(input_tensor.unsqueeze(1))
     
     st.subheader('Feature Importances (Transformer)')
     shap.summary_plot(shap_values, pd.DataFrame(input_data, columns=input_data.columns), plot_type="bar", feature_names=data.columns[:-1], show=False)
