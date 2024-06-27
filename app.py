@@ -65,10 +65,10 @@ cigpday = st.sidebar.slider("Cigarettes Per Day", 0, 90, 20)
 bpm = st.sidebar.selectbox("On BP Meds", [0, 1])
 stroke = st.sidebar.selectbox("Stroke", [0, 1])
 hyperten = st.sidebar.selectbox("Hypertension", [0, 1])
-ldl = st.sidebar.slider("LDL Cholesterol", 0, 200, 100)
+ldl = st.sidebar.slider("LDL Cholesterol", 0, 208, 100)
 hdl = st.sidebar.slider("HDL Cholesterol", 0, 100, 50)
 
-# Collect user inputs into a DataFrame
+# Prepare user input for prediction
 user_data = pd.DataFrame({
     'AGE': [age],
     'TOTCHOL': [totchol],
