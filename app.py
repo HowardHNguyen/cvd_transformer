@@ -122,7 +122,8 @@ embedding_weights = transformer_model.embedding.weight.detach().numpy()
 # Verify the dimensions of the embedding layer's weights
 st.write(f"Embedding layer weights shape: {embedding_weights.shape}")
 
-importances = np.sum(np.abs(embedding_weights), axis=1)
+# We need to sum across the rows to get the importance per feature
+importances = np.sum(np.abs(embedding_weights), axis=0)
 
 # Debug prints to check lengths
 st.write(f"Number of features: {len(input_data.columns)}")
