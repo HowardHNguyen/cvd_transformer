@@ -119,7 +119,7 @@ if st.sidebar.button("PREDICT NOW"):
     st.pyplot(fig)
 
     # Feature Importance using SHAP
-    st.subheader('Feature Importances (Transformer)')
+    st.subheader('Feature Importances (Transformer model II)')
     explainer = shap.DeepExplainer(transformer_model, input_tensor.unsqueeze(0))
     shap_values = explainer.shap_values(input_tensor.unsqueeze(0))
 
