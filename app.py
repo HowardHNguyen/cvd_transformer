@@ -38,7 +38,7 @@ class TransformerModel(nn.Module):
 
 # Load the model and data
 transformer_model = TransformerModel(input_dim=15, num_classes=2)
-transformer_model.load_state_dict(torch.load('transformer_model.pth', map_location=torch.device('cpu')))
+transformer_model.load_state_dict(torch.load('transformer_model.pth', map_location=torch.device('cpu')), strict=False)
 transformer_model.eval()
 
 scaler = pd.read_pickle('scaler.pkl')
