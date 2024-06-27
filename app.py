@@ -10,7 +10,7 @@ from sklearn.metrics import roc_curve, auc
 
 # Define the model
 class TransformerModel(nn.Module):
-    def __init__(self, input_dim, num_classes, d_model=128, max_seq_length=1, nhead=8, num_layers=3):
+    def __init__(self, input_dim, num_classes, d_model=128, max_seq_length=1, nhead=8, num_layers=4):
         super(TransformerModel, self).__init__()
         self.embedding = nn.Linear(input_dim, d_model)
         self.pos_encoder = nn.Parameter(torch.zeros(1, max_seq_length, d_model), requires_grad=False)
