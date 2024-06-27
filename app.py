@@ -114,10 +114,15 @@ st.pyplot(plt)
 
 # Feature Importances
 st.subheader("Feature Importances (Transformer)")
-importances = np.abs(transformer_model.embedding.weight.detach().numpy()).mean(axis=1)
+
+# Assuming the transformer_model has a linear layer named 'embedding'
+importances = np.abs(transformer_model.embedding.weight.detach().numpy().flatten())
 feature_importances = pd.DataFrame({'feature': input_data.columns, 'importance': importances})
+
+# Sort the feature importances
 feature_importances = feature_importances.sort_values(by='importance', ascending=False)
 
+# Plot the feature importances
 fig, ax = plt.subplots()
 ax.barh(feature_importances['feature'], feature_importances['importance'])
 ax.set_xlabel('Importance')
