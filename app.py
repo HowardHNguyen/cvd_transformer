@@ -121,15 +121,15 @@ if st.sidebar.button("PREDICT NOW"):
     # Feature Importance using SHAP
     st.subheader('Feature Importances (Transformer)')
     
-    explainer = shap.Explainer(transformer_model, input_tensor.unsqueeze(0))
-    shap_values = explainer(input_tensor.unsqueeze(0))
+    explainer = shap.DeepExplainer(transformer_model, input_tensor.unsqueeze(1))
+    shap_values = explainer.shap_values(input_tensor.unsqueeze(1))
     
     # Debug shapes
-    st.write(f"SHAP values shape: {shap_values.shape}")
+    st.write(f"SHAP values shape: {shap_values[0].shape}")
     st.write(f"Input data shape: {input_data.shape}")
     
     fig, ax = plt.subplots()
-    shap.summary_plot(shap_values.values, input_data, plot_type="bar", show=False)
+    shap.summary_plot(shap_values[0], input_data, plot_type="bar", show=False)
     st.pyplot(fig)
 
     # ROC Curve
