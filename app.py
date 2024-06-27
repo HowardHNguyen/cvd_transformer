@@ -117,24 +117,6 @@ if st.sidebar.button("PREDICT NOW"):
     plt.title('Prediction Probability')
     st.pyplot(fig)
 
-    # Model Performance
-    st.subheader('Model Performance (ROC Curve)')
-    y_true = [1, 0]  # Replace with your actual test labels
-    y_scores = prediction_proba[0, 1]  # Replace with your actual test scores
-    fpr, tpr, _ = roc_curve(y_true, y_scores)
-    roc_auc = auc(fpr, tpr)
-
-    fig, ax = plt.subplots()
-    ax.plot(fpr, tpr, color='blue', lw=2, label=f'Transformer (AUC = {roc_auc:.4f})')
-    ax.plot([0, 1], [0, 1], color='navy', lw=2, linestyle='--')
-    ax.set_xlim([0.0, 1.0])
-    ax.set_ylim([0.0, 1.05])
-    ax.set_xlabel('False Positive Rate')
-    ax.set_ylabel('True Positive Rate')
-    ax.set_title('Receiver Operating Characteristic (ROC) Curve')
-    ax.legend(loc="lower right")
-    st.pyplot(fig)
-
     # Feature Importance using SHAP
     st.subheader('Feature Importances (Transformer)')
     explainer = shap.Explainer(transformer_model, input_tensor)
