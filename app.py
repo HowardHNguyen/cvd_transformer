@@ -115,6 +115,15 @@ if st.button('PREDICT NOW'):
     st.subheader('Prediction Probability')
     st.write(pd.DataFrame(prediction_proba, columns=['Probability'], index=['No CVD', 'CVD']))
 
+    # Plot prediction probabilities
+    fig, ax = plt.subplots()
+    ax.bar(['No CVD', 'CVD'], prediction_proba, color=['blue', 'red'])
+    ax.set_ylim([0, 1])
+    ax.set_xlabel('Prediction')
+    ax.set_ylabel('Probability')
+    ax.set_title('Prediction Probability')
+    st.pyplot(fig)
+
     # Load true labels and predicted probabilities for ROC curve
     y_test = joblib.load('transformer_y_test.pkl')
     y_pred_proba = joblib.load('transformer_y_pred_proba.pkl')
