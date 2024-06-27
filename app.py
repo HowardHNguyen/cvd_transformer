@@ -101,9 +101,9 @@ if st.sidebar.button('PREDICT NOW'):
     # Model performance (ROC Curve)
     st.subheader('Model Performance (ROC Curve)')
     
-    # Assuming y_test and y_pred_proba are available
-    y_test = np.array([...])  # Replace with actual test labels
-    y_pred_proba = np.array([...])  # Replace with actual prediction probabilities
+    # Load saved predictions
+    y_test = joblib.load('transformer_y_test.pkl')
+    y_pred_proba = joblib.load('transformer_y_pred_proba.pkl')
     
     fpr, tpr, _ = roc_curve(y_test, y_pred_proba[:, 1])
     roc_auc = auc(fpr, tpr)
