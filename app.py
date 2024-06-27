@@ -45,26 +45,26 @@ model.eval()
 feature_columns = ['AGE', 'TOTCHOL', 'SYSBP', 'DIABP', 'BMI', 'CURSMOKE', 'GLUCOSE', 'DIABETES', 'HEARTRTE', 'CIGPDAY', 'BPMEDS', 'STROKE', 'HYPERTEN', 'LDLC', 'HDLC']
 
 # Streamlit app
-st.title("Cardiovascular Disease Prediction (Transformer)")
+st.title("Cardiovascular Disease Prediction (Transformer) by Howard Nguyen")
 
-st.sidebar.header('User Input Parameters')
+st.sidebar.header('Please Select Your Parameters')
 
 def user_input_features():
     age = st.sidebar.slider('Age', 32, 81, 54)
     totchol = st.sidebar.slider('Total Cholesterol', 107, 696, 200)
-    sysbp = st.sidebar.slider('Systolic Blood Pressure', 83, 295, 140)
-    diabp = st.sidebar.slider('Diastolic Blood Pressure', 30, 150, 89)
-    bmi = st.sidebar.slider('BMI', 14.43, 56.80, 26.77)
+    sysbp = st.sidebar.slider('Systolic Blood Pressure', 83, 295, 130)
+    diabp = st.sidebar.slider('Diastolic Blood Pressure', 30, 150, 82)
+    bmi = st.sidebar.slider('BMI', 14.43, 56.80, 28.75)
+    glucose = st.sidebar.slider('Glucose', 39, 478, 98)
+    heartrate = st.sidebar.slider('Heart Rate', 37, 220, 80)
     cursmoke = st.sidebar.selectbox('Current Smoker', [0, 1])
-    glucose = st.sidebar.slider('Glucose', 39, 478, 117)
-    diabetes = st.sidebar.selectbox('Diabetes', [0, 1])
-    heartrate = st.sidebar.slider('Heart Rate', 37, 220, 91)
     cigpday = st.sidebar.slider('Cigarettes Per Day', 0, 90, 20)
-    bpmeds = st.sidebar.selectbox('On BP Meds', [0, 1])
-    stroke = st.sidebar.selectbox('Stroke', [0, 1])
-    hyperten = st.sidebar.selectbox('Hypertension', [0, 1])
     ldlc = st.sidebar.slider('LDL Cholesterol', 0, 200, 100)
     hdlc = st.sidebar.slider('HDL Cholesterol', 0, 100, 50)
+    stroke = st.sidebar.selectbox('Stroke', [0, 1])
+    diabetes = st.sidebar.selectbox('Diabetes', [0, 1])
+    hyperten = st.sidebar.selectbox('Hypertension', [0, 1])
+    bpmeds = st.sidebar.selectbox('On BP Meds', [0, 1])
     
     data = {
         'AGE': age,
@@ -106,7 +106,7 @@ if st.button('PREDICT NOW'):
         prediction_proba = torch.softmax(output, dim=1).numpy()[0]
 
     # Display prediction
-    st.subheader('Prediction')
+    st.subheader('Prediction Found')
     if prediction == 0:
         st.write('No Cardiovascular Disease')
     else:
@@ -155,5 +155,5 @@ if st.button('PREDICT NOW'):
     ax.set_yticks(range(len(indices)))
     ax.set_yticklabels([feature_columns[i] for i in indices])
     ax.set_xlabel('Importance')
-    ax.set_title('Feature Importances (Transformer)')
+    ax.set_title('Risk Factors / Feature Importances (Transformer)')
     st.pyplot(fig)
