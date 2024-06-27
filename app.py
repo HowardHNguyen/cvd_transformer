@@ -7,6 +7,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import shap
 from sklearn.metrics import roc_curve, auc
+import joblib
 
 class TransformerModel(nn.Module):
     def __init__(self, input_dim, num_classes, d_model=128, max_seq_length=1, nhead=8, num_layers=3):
@@ -119,9 +120,7 @@ if st.sidebar.button("PREDICT NOW"):
 
     # Feature Importance using SHAP
     st.subheader('Feature Importances (Transformer)')
-    # Create a dummy batch for SHAP
-    dummy_batch = torch.cat([input_tensor.unsqueeze(0) for _ in range(50)], dim=0)
-    explainer = shap.DeepExplainer(transformer_model, dummy_batch)
+    explainer = shap.DeepExplainer(transformer_model, input_tensor.unsqueeze(0))
     shap_values = explainer.shap_values(input_tensor.unsqueeze(0))
 
     fig, ax = plt.subplots()
@@ -130,8 +129,8 @@ if st.sidebar.button("PREDICT NOW"):
 
     # ROC Curve
     st.subheader('Model Performance (ROC Curve)')
-    y_test = joblib.load('transformer_y_test.pkl')  # Provide actual y_test data here if available
-    y_pred_proba = joblib.load('transformer_y_pred_proba.pkl')  # Provide predicted probabilities here if available
+    y_test = joblib.load('transformer_y_test.pkl')  
+    y_pred_proba = joblib.load('transformer_y_pred_proba.pkl')
     fpr, tpr, _ = roc_curve(y_test, y_pred_proba[:, 1])
     roc_auc = auc(fpr, tpr)
     plt.figure()
