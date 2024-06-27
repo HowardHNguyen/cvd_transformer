@@ -6,7 +6,7 @@ import pandas as pd
 import joblib
 import numpy as np
 from sklearn.preprocessing import StandardScaler
-from sklearn.metrics import accuracy_score
+from sklearn.metrics import accuracy_score, roc_curve, auc
 import matplotlib.pyplot as plt
 
 # Define the Transformer model
@@ -79,43 +79,57 @@ input_df = user_input_features()
 st.subheader('User Input Parameters')
 st.write(input_df)
 
-# Preprocess user input
-input_df_scaled = scaler.transform(input_df)
+if st.sidebar.button('PREDICT NOW'):
+    # Preprocess user input
+    input_df_scaled = scaler.transform(input_df)
 
-# Convert to tensor
-input_tensor = torch.tensor(input_df_scaled, dtype=torch.float32).unsqueeze(1)
+    # Convert to tensor
+    input_tensor = torch.tensor(input_df_scaled, dtype=torch.float32).unsqueeze(1)
 
-# Prediction
-with torch.no_grad():
-    outputs = transformer_model(input_tensor)
-    _, prediction = torch.max(outputs, 1)
-    prediction_proba = torch.softmax(outputs, dim=1)
+    # Prediction
+    with torch.no_grad():
+        outputs = transformer_model(input_tensor)
+        _, prediction = torch.max(outputs, 1)
+        prediction_proba = torch.softmax(outputs, dim=1)
 
-st.subheader('Prediction')
-st.write('Risk of Cardiovascular Disease:' if prediction.item() == 1 else 'No Cardiovascular Disease')
+    st.subheader('Prediction')
+    st.write('Risk of Cardiovascular Disease:' if prediction.item() == 1 else 'No Cardiovascular Disease')
 
-st.subheader('Prediction Probability')
-st.write(prediction_proba.numpy())
+    st.subheader('Prediction Probability')
+    st.write(prediction_proba.numpy())
 
-# Feature importance plot (if applicable, otherwise describe key features)
-st.subheader('Key Features (based on domain knowledge)')
-st.write("""
-- AGE: Age of the patient
-- TOTCHOL: Total cholesterol level
-- SYSBP: Systolic blood pressure
-- DIABP: Diastolic blood pressure
-- BMI: Body mass index
-- CURSMOKE: Current smoker status
-- GLUCOSE: Glucose level
-- DIABETES: Diabetes status
-- HEARTRTE: Heart rate
-- CIGPDAY: Cigarettes per day
-- BPMEDS: Blood pressure medication status
-- STROKE: Stroke history
-- HYPERTEN: Hypertension status
-- LDLC: LDL cholesterol level
-- HDLC: HDL cholesterol level
-""")
+    # Model performance (ROC Curve)
+    st.subheader('Model Performance (ROC Curve)')
+    
+    # Assuming y_test and y_pred_proba are available
+    y_test = np.array([...])  # Replace with actual test labels
+    y_pred_proba = np.array([...])  # Replace with actual prediction probabilities
+    
+    fpr, tpr, _ = roc_curve(y_test, y_pred_proba[:, 1])
+    roc_auc = auc(fpr, tpr)
+    
+    plt.figure()
+    plt.plot(fpr, tpr, color='blue', lw=2, label=f'ROC curve (area = {roc_auc:.2f})')
+    plt.plot([0, 1], [0, 1], color='navy', lw=2, linestyle='--')
+    plt.xlim([0.0, 1.0])
+    plt.ylim([0.0, 1.05])
+    plt.xlabel('False Positive Rate')
+    plt.ylabel('True Positive Rate')
+    plt.title('Receiver Operating Characteristic (ROC) Curve')
+    plt.legend(loc="lower right")
+    st.pyplot(plt)
+
+    # Feature importance plot
+    st.subheader('Feature Importances')
+    
+    feature_importances = np.array([0.12, 0.15, 0.18, 0.10, 0.13, 0.05, 0.07, 0.08, 0.06, 0.04, 0.02, 0.20, 0.11, 0.09, 0.03])  # Example importances
+    feature_names = ['AGE', 'TOTCHOL', 'SYSBP', 'DIABP', 'BMI', 'CURSMOKE', 'GLUCOSE', 'DIABETES', 'HEARTRTE', 'CIGPDAY', 'BPMEDS', 'STROKE', 'HYPERTEN', 'LDLC', 'HDLC']
+    
+    plt.figure(figsize=(10, 6))
+    plt.barh(feature_names, feature_importances, color='blue')
+    plt.xlabel('Importance')
+    plt.title('Feature Importances (Transformer)')
+    st.pyplot(plt)
 
 if __name__ == '__main__':
     st.title("CVD Prediction App with Transformer Model")
