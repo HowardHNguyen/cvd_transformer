@@ -5,8 +5,7 @@ import torch.nn.functional as F
 import pandas as pd
 import joblib
 import numpy as np
-from sklearn.preprocessing import StandardScaler
-from sklearn.metrics import accuracy_score, roc_curve, auc
+from sklearn.metrics import roc_curve, auc
 import matplotlib.pyplot as plt
 
 # Define the Transformer model
@@ -66,70 +65,88 @@ def user_input_features():
     ldlc = st.sidebar.slider('LDL Cholesterol', 0, 200, 100)
     hdlc = st.sidebar.slider('HDL Cholesterol', 0, 100, 50)
     
-    return pd.DataFrame({
-        'AGE': [age], 'TOTCHOL': [totchol], 'SYSBP': [sysbp],
-        'DIABP': [diabp], 'BMI': [bmi], 'CURSMOKE': [cursmoke],
-        'GLUCOSE': [glucose], 'DIABETES': [diabetes], 'HEARTRTE': [heartrate],
-        'CIGPDAY': [cigpday], 'BPMEDS': [bpmeds], 'STROKE': [stroke],
-        'HYPERTEN': [hyperten], 'LDLC': [ldlc], 'HDLC': [hdlc]
-    })
+    data = {'AGE': age,
+            'TOTCHOL': totchol,
+            'SYSBP': sysbp,
+            'DIABP': diabp,
+            'BMI': bmi,
+            'CURSMOKE': cursmoke,
+            'GLUCOSE': glucose,
+            'DIABETES': diabetes,
+            'HEARTRTE': heartrate,
+            'CIGPDAY': cigpday,
+            'BPMEDS': bpmeds,
+            'STROKE': stroke,
+            'HYPERTEN': hyperten,
+            'LDLC': ldlc,
+            'HDLC': hdlc}
+    features = pd.DataFrame(data, index=[0])
+    return features
 
-input_df = user_input_features()
+df = user_input_features()
 
 st.subheader('User Input Parameters')
-st.write(input_df)
+st.write(df)
 
-if st.sidebar.button('PREDICT NOW'):
-    # Preprocess user input
-    input_df_scaled = scaler.transform(input_df)
+# Prediction
+input_data = scaler.transform(df)
+input_tensor = torch.tensor(input_data, dtype=torch.float32).unsqueeze(1)
+output = transformer_model(input_tensor)
+_, prediction = torch.max(output, 1)
+prediction_proba = torch.softmax(output, dim=1).detach().numpy()
 
-    # Convert to tensor
-    input_tensor = torch.tensor(input_df_scaled, dtype=torch.float32).unsqueeze(1)
+st.subheader('Prediction')
+cvd_prediction = 'Cardiovascular Disease' if prediction.item() == 1 else 'No Cardiovascular Disease'
+st.write(cvd_prediction)
 
-    # Prediction
-    with torch.no_grad():
-        outputs = transformer_model(input_tensor)
-        _, prediction = torch.max(outputs, 1)
-        prediction_proba = torch.softmax(outputs, dim=1)
+st.subheader('Prediction Probability')
+st.write(prediction_proba)
 
-    st.subheader('Prediction')
-    st.write('Risk of Cardiovascular Disease:' if prediction.item() == 1 else 'No Cardiovascular Disease')
+# Load evaluation data
+y_test = joblib.load('transformer_y_test.pkl')
+y_pred_proba = joblib.load('transformer_y_pred_proba.pkl')
 
-    st.subheader('Prediction Probability')
-    st.write(prediction_proba.numpy())
+# Plot ROC Curve
+fpr, tpr, _ = roc_curve(y_test, y_pred_proba[:, 1])
+roc_auc = auc(fpr, tpr)
 
-    # Model performance (ROC Curve)
-    st.subheader('Model Performance (ROC Curve)')
-    
-    # Load saved predictions
-    y_test = joblib.load('transformer_y_test.pkl')
-    y_pred_proba = joblib.load('transformer_y_pred_proba.pkl')
-    
-    fpr, tpr, _ = roc_curve(y_test, y_pred_proba[:, 1])
-    roc_auc = auc(fpr, tpr)
-    
-    plt.figure()
-    plt.plot(fpr, tpr, color='blue', lw=2, label=f'ROC curve (area = {roc_auc:.2f})')
-    plt.plot([0, 1], [0, 1], color='navy', lw=2, linestyle='--')
-    plt.xlim([0.0, 1.0])
-    plt.ylim([0.0, 1.05])
-    plt.xlabel('False Positive Rate')
-    plt.ylabel('True Positive Rate')
-    plt.title('Receiver Operating Characteristic (ROC) Curve')
-    plt.legend(loc="lower right")
-    st.pyplot(plt)
+st.subheader('Model Performance (ROC Curve)')
+plt.figure()
+plt.plot(fpr, tpr, color='blue', lw=2, label='Transformer (AUC = %0.4f)' % roc_auc)
+plt.plot([0, 1], [0, 1], color='gray', lw=2, linestyle='--')
+plt.xlim([0.0, 1.0])
+plt.ylim([0.0, 1.05])
+plt.xlabel('False Positive Rate')
+plt.ylabel('True Positive Rate')
+plt.title('Receiver Operating Characteristic (ROC) Curve')
+plt.legend(loc="lower right")
+st.pyplot(plt)
 
-    # Feature importance plot
-    st.subheader('Feature Importances')
-    
-    feature_importances = np.array([0.12, 0.15, 0.18, 0.10, 0.13, 0.05, 0.07, 0.08, 0.06, 0.04, 0.02, 0.20, 0.11, 0.09, 0.03])  # Example importances
-    feature_names = ['AGE', 'TOTCHOL', 'SYSBP', 'DIABP', 'BMI', 'CURSMOKE', 'GLUCOSE', 'DIABETES', 'HEARTRTE', 'CIGPDAY', 'BPMEDS', 'STROKE', 'HYPERTEN', 'LDLC', 'HDLC']
-    
-    plt.figure(figsize=(10, 6))
-    plt.barh(feature_names, feature_importances, color='blue')
-    plt.xlabel('Importance')
-    plt.title('Feature Importances (Transformer)')
-    st.pyplot(plt)
+# Plot Feature Importances
+st.subheader('Feature Importances')
+feature_importances = {
+    'AGE': 0.05,
+    'TOTCHOL': 0.04,
+    'SYSBP': 0.10,
+    'DIABP': 0.03,
+    'BMI': 0.08,
+    'CURSMOKE': 0.02,
+    'GLUCOSE': 0.04,
+    'DIABETES': 0.06,
+    'HEARTRTE': 0.02,
+    'CIGPDAY': 0.02,
+    'BPMEDS': 0.01,
+    'STROKE': 0.15,
+    'HYPERTEN': 0.05,
+    'LDLC': 0.04,
+    'HDLC': 0.03
+}
 
-if __name__ == '__main__':
-    st.title("CVD Prediction App with Transformer Model")
+features = list(feature_importances.keys())
+importances = list(feature_importances.values())
+
+plt.figure()
+plt.barh(features, importances, color='blue')
+plt.xlabel('Importance')
+plt.title('Feature Importances (Transformer)')
+st.pyplot(plt)
