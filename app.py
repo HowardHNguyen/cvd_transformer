@@ -119,17 +119,19 @@ if st.sidebar.button("PREDICT NOW"):
 
     # Feature Importance using SHAP
     st.subheader('Feature Importances (Transformer)')
-    explainer = shap.Explainer(transformer_model, input_tensor.unsqueeze(1))
-    shap_values = explainer(input_tensor.unsqueeze(1))
+    # Create a dummy batch for SHAP
+    dummy_batch = torch.cat([input_tensor.unsqueeze(0) for _ in range(50)], dim=0)
+    explainer = shap.DeepExplainer(transformer_model, dummy_batch)
+    shap_values = explainer.shap_values(input_tensor.unsqueeze(0))
 
     fig, ax = plt.subplots()
-    shap.summary_plot(shap_values, input_tensor, feature_names=input_data.columns, plot_type="bar", show=False)
+    shap.summary_plot(shap_values, input_data, plot_type="bar", show=False)
     st.pyplot(fig)
 
     # ROC Curve
     st.subheader('Model Performance (ROC Curve)')
-    y_test = ...  # Provide actual y_test data here if available
-    y_pred_proba = ...  # Provide predicted probabilities here if available
+    y_test = joblib.load('transformer_y_test.pkl')  # Provide actual y_test data here if available
+    y_pred_proba = joblib.load('transformer_y_pred_proba.pkl')  # Provide predicted probabilities here if available
     fpr, tpr, _ = roc_curve(y_test, y_pred_proba[:, 1])
     roc_auc = auc(fpr, tpr)
     plt.figure()
