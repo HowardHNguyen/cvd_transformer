@@ -62,7 +62,10 @@ class TransformerEstimator(BaseEstimator, ClassifierMixin):
 
 # Load the model and data
 transformer_model = TransformerModel(input_dim=13, num_classes=2)
-transformer_model.load_state_dict(torch.load('transformer_model.pth', map_location=torch.device('cpu')))
+try:
+    transformer_model.load_state_dict(torch.load('transformer_model.pth', map_location=torch.device('cpu')))
+except RuntimeError as e:
+    st.error(f"Error loading model state_dict: {e}")
 transformer_model.eval()
 
 # Load the scaler
@@ -154,7 +157,7 @@ if st.sidebar.button("PREDICT NOW"):
     # Feature Importance using Permutation Importance
     st.subheader('Feature Importances (Transformer)')
     
-    result = permutation_importance(transformer_estimator, X_train_scaled, y_train, n_repeats=10, random_state=42, scoring='accuracy')
+    result = permutation_importance(transformer_estimator, X_train_scaled, y_train, n_repeats=10, random_state=42)
     feature_importance = pd.DataFrame(result.importances_mean, index=input_data.columns, columns=['Importance']).sort_values(by='Importance', ascending=False)
     
     st.write(f"Feature Importances: {feature_importance}")
