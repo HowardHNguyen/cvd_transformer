@@ -12,7 +12,7 @@ class TransformerModel(nn.Module):
     def __init__(self, input_dim, num_classes):
         super(TransformerModel, self).__init__()
         self.embedding = nn.Linear(input_dim, 128)
-        self.pos_encoder = nn.Parameter(torch.zeros(1, 128))
+        self.pos_encoder = nn.Parameter(torch.zeros(1, 1, 128))
         encoder_layers = nn.TransformerEncoderLayer(d_model=128, nhead=8)
         self.transformer_encoder = nn.TransformerEncoder(encoder_layers, num_layers=3)
         self.fc1 = nn.Linear(128, 64)
@@ -32,9 +32,17 @@ transformer_model = TransformerModel(input_dim=13, num_classes=2)
 # Load the state dict
 state_dict = torch.load('transformer_model.pth', map_location=torch.device('cpu'))
 
-# Load the state dict into the model
+# Adjust the state_dict to match the model dimensions
+adjusted_state_dict = {}
+for key, value in state_dict.items():
+    if key in transformer_model.state_dict() and transformer_model.state_dict()[key].shape != value.shape:
+        adjusted_state_dict[key] = transformer_model.state_dict()[key]
+    else:
+        adjusted_state_dict[key] = value
+
+# Load the adjusted state dict into the model
 try:
-    transformer_model.load_state_dict(state_dict)
+    transformer_model.load_state_dict(adjusted_state_dict, strict=False)
 except RuntimeError as e:
     st.error(f"Error loading model state_dict: {e}")
 
