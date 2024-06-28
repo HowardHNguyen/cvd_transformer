@@ -1,13 +1,5 @@
-import streamlit as st
-import pandas as pd
-import numpy as np
 import torch
 import torch.nn as nn
-import joblib
-from sklearn.preprocessing import StandardScaler
-from sklearn.metrics import roc_curve, roc_auc_score, accuracy_score
-import matplotlib.pyplot as plt
-import shap
 
 # Define the TransformerModel class
 class TransformerModel(nn.Module):
@@ -28,10 +20,22 @@ class TransformerModel(nn.Module):
         x = self.fc2(x)
         return x
 
-# Load the model
+# Instantiate the model with the correct dimensions
 transformer_model = TransformerModel(input_dim=13, num_classes=2)
-transformer_model.load_state_dict(torch.load('transformer_model.pth', map_location=torch.device('cpu')))
-transformer_model.eval()
+
+# Load the state dict into the model without strict mode
+state_dict = torch.load('transformer_model.pth', map_location=torch.device('cpu'))
+missing_keys, unexpected_keys = transformer_model.load_state_dict(state_dict, strict=False)
+
+# Print missing and unexpected keys
+print(f"Missing keys: {missing_keys}")
+print(f"Unexpected keys: {unexpected_keys}")
+
+# Continue with Streamlit app if loading is successful
+import streamlit as st
+import numpy as np
+import joblib
+from sklearn.preprocessing import StandardScaler
 
 # Load the scaler
 scaler = joblib.load('scaler.pkl')
@@ -72,10 +76,6 @@ input_data = np.array([[age, totchol, sysbp, diabp, bmi, cursmoke, glucose, diab
 # Predict and display results
 if st.button("Predict"):
     predict_and_display(input_data)
-
-# Feature Importances and ROC Curve (assuming you have precomputed these)
-# Add your existing logic here for displaying feature importances and ROC curve
-
 
 # Feature Importances
 st.subheader('Feature Importances (Transformer)')
