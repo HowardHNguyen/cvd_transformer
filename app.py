@@ -53,20 +53,20 @@ st.title("Cardiovascular Disease Prediction (Transformer)")
 st.sidebar.header('Please Select Your Parameters')
 def user_input_features():
     age = st.sidebar.slider('Age', 32, 81, 54)
-    totchol = st.sidebar.slider('Total Cholesterol', 107, 696, 200)
-    sysbp = st.sidebar.slider('Systolic Blood Pressure', 83, 295, 140)
-    diabp = st.sidebar.slider('Diastolic Blood Pressure', 30, 150, 89)
-    bmi = st.sidebar.slider('BMI', 14.43, 56.80, 26.77)
+    totchol = st.sidebar.slider('Total Cholesterol', 107, 696, 175)
+    sysbp = st.sidebar.slider('Systolic Blood Pressure', 83, 295, 115)
+    diabp = st.sidebar.slider('Diastolic Blood Pressure', 30, 150, 80)
+    bmi = st.sidebar.slider('BMI', 14.43, 56.80, 28.27)
     cursmoke = st.sidebar.selectbox('Current Smoker', [0, 1])
     glucose = st.sidebar.slider('Glucose', 39, 478, 117)
     diabetes = st.sidebar.selectbox('Diabetes', [0, 1])
-    heartrate = st.sidebar.slider('Heart Rate', 37, 220, 91)
-    cigpday = st.sidebar.slider('Cigarettes Per Day', 0, 90, 20)
+    heartrate = st.sidebar.slider('Heart Rate', 37, 220, 60)
+    cigpday = st.sidebar.slider('Cigarettes Per Day', 0, 90, 0)
     bpmeds = st.sidebar.selectbox('On BP Meds', [0, 1])
     stroke = st.sidebar.selectbox('Stroke', [0, 1])
     hyperten = st.sidebar.selectbox('Hypertension', [0, 1])
-    ldlo = st.sidebar.slider('LDL Cholesterol', 0, 208, 100)
-    hdlo = st.sidebar.slider('HDL Cholesterol', 0, 100, 50)
+    ldlo = st.sidebar.slider('LDL Cholesterol', 20, 565, 180)
+    hdlo = st.sidebar.slider('HDL Cholesterol', 10, 189, 80)
     
     data = {
         'AGE': age,
@@ -144,6 +144,8 @@ if st.sidebar.button("PREDICT NOW"):
     st.write(f"Input data shape: {input_data.shape}")
     
     # Plot SHAP values
+    shap_values = np.array(shap_values).reshape(1, -1)
+    input_data_scaled = input_data_scaled.reshape(1, -1)
     fig, ax = plt.subplots()
     shap.summary_plot(shap_values, input_data, plot_type="bar", show=False)
     st.pyplot(fig)
