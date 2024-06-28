@@ -124,19 +124,17 @@ if st.sidebar.button("PREDICT NOW"):
     # Feature Importance using SHAP
     st.subheader('Feature Importances (Transformer)')
     
-    background_data = torch.tensor(X_train_scaled[:100], dtype=torch.float32).unsqueeze(1)
-    explainer = shap.DeepExplainer(transformer_model, background_data)
-    shap_values = explainer.shap_values(input_tensor.unsqueeze(1))
+    background_data = X_train_scaled[:100]
+    explainer = shap.KernelExplainer(transformer_model, background_data)
+    shap_values = explainer.shap_values(input_tensor.numpy())
     
     # Debug shapes
     st.write(f"SHAP values shape: {np.array(shap_values).shape}")
     st.write(f"Input data shape: {input_data.shape}")
     
-    # Reshape SHAP values for plotting
-    shap_values_reshaped = np.array(shap_values).reshape((1, 15))
-    
+    # Plot SHAP values
     fig, ax = plt.subplots()
-    shap.summary_plot(shap_values_reshaped, input_data, plot_type="bar", show=False)
+    shap.summary_plot(shap_values, input_data, plot_type="bar", show=False)
     st.pyplot(fig)
 
     # ROC Curve
