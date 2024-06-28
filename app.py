@@ -57,7 +57,7 @@ def predict_and_display(input_data):
         
         # Prediction
         with torch.no_grad():
-            prediction = transformer_model(input_tensor)
+            prediction = transformer_model(input_tensor.unsqueeze(1)).squeeze(1)
             probabilities = nn.Softmax(dim=1)(prediction).numpy()
         
         # Check the shape and type of the prediction and probabilities
