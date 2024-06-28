@@ -1,90 +1,21 @@
 import streamlit as st
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
 import pandas as pd
 import numpy as np
+import joblib
+import torch
 import matplotlib.pyplot as plt
 from sklearn.metrics import roc_curve, auc
 from sklearn.inspection import permutation_importance
-import joblib
-from sklearn.base import BaseEstimator, ClassifierMixin
 
-class TransformerModel(nn.Module):
-    def __init__(self, input_dim, num_classes, d_model=128, max_seq_length=1, nhead=8, num_layers=3):
-        super(TransformerModel, self).__init__()
-        self.embedding = nn.Linear(input_dim, d_model)
-        self.pos_encoder = nn.Parameter(torch.zeros(1, max_seq_length, d_model), requires_grad=False)
-        encoder_layers = nn.TransformerEncoderLayer(d_model=d_model, nhead=nhead, dim_feedforward=512)
-        self.transformer_encoder = nn.TransformerEncoder(encoder_layers, num_layers=num_layers)
-        self.fc1 = nn.Linear(d_model, 64)
-        self.fc2 = nn.Linear(64, num_classes)
-        self.max_seq_length = max_seq_length
-        self.dropout = nn.Dropout(0.3)
-
-    def forward(self, x):
-        x = self.embedding(x)
-        batch_size, seq_length, _ = x.size()
-        if seq_length > self.max_seq_length:
-            raise ValueError(f"Input sequence length ({seq_length}) exceeds the maximum sequence length ({self.max_seq_length}).")
-        pos_encoding = self.pos_encoder[:, :seq_length, :].expand(batch_size, -1, -1).to(x.device)
-        x = x + pos_encoding
-        x = x.transpose(0, 1)
-        x = self.transformer_encoder(x)
-        x = x.mean(dim=0)
-        x = self.dropout(F.relu(self.fc1(x)))
-        x = self.fc2(x)
-        return x
-
-class TransformerEstimator(BaseEstimator, ClassifierMixin):
-    def __init__(self, model):
-        self.model = model
-    
-    def fit(self, X, y):
-        self.classes_ = np.unique(y)
-        return self
-    
-    def predict(self, X):
-        self.model.eval()
-        X_tensor = torch.tensor(X, dtype=torch.float32).unsqueeze(1)
-        with torch.no_grad():
-            outputs = self.model(X_tensor)
-            _, predictions = torch.max(outputs, 1)
-        return predictions.numpy()
-    
-    def predict_proba(self, X):
-        self.model.eval()
-        X_tensor = torch.tensor(X, dtype=torch.float32).unsqueeze(1)
-        with torch.no_grad():
-            outputs = self.model(X_tensor)
-            probabilities = F.softmax(outputs, dim=1)
-        return probabilities.numpy()
-
-# Load the model and data
+# Load the model and scaler
 transformer_model = TransformerModel(input_dim=13, num_classes=2)
-try:
-    transformer_model.load_state_dict(torch.load('transformer_model.pth', map_location=torch.device('cpu')))
-    st.success("Model loaded successfully")
-except RuntimeError as e:
-    st.error(f"Error loading model state_dict: {e}")
+transformer_model.load_state_dict(torch.load('transformer_model.pth', map_location=torch.device('cpu')))
 transformer_model.eval()
 
-# Load the scaler
-scaler = pd.read_pickle('scaler.pkl')
+scaler = joblib.load('scaler.pkl')
 
-# Load the training data
-X_train_scaled = joblib.load('X_train_scaled.pkl')
-y_train = joblib.load('y_train.pkl')
+st.title('Cardiovascular Disease Prediction (Transformer)')
 
-# Wrap the transformer model
-transformer_estimator = TransformerEstimator(transformer_model)
-transformer_estimator.fit(X_train_scaled, y_train)
-
-# Streamlit app
-st.title("Cardiovascular Disease Prediction (Transformer)")
-
-# User input features
-st.sidebar.header('Please Select Your Parameters')
 def user_input_features():
     age = st.sidebar.slider('Age', 32, 81, 54)
     totchol = st.sidebar.slider('Total Cholesterol', 107, 696, 200)
@@ -123,12 +54,15 @@ input_data = user_input_features()
 st.subheader('User Input Parameters')
 st.write(input_data)
 
-# Scale the input data
-input_data_scaled = scaler.transform(input_data)
+try:
+    input_data_scaled = scaler.transform(input_data)
+except Exception as e:
+    st.error(f"Error in scaling input data: {e}")
+    st.stop()
 
 # Prediction
-prediction = transformer_estimator.predict(input_data_scaled)
-prediction_proba = transformer_estimator.predict_proba(input_data_scaled)
+prediction = transformer_model(torch.tensor(input_data_scaled, dtype=torch.float32)).argmax(dim=1).item()
+prediction_proba = transformer_model(torch.tensor(input_data_scaled, dtype=torch.float32)).softmax(dim=1).detach().numpy()
 
 # Display prediction
 st.subheader('Prediction')
@@ -149,8 +83,8 @@ st.pyplot(fig)
 # Feature Importances
 st.subheader('Feature Importances (Transformer)')
 try:
-    result = permutation_importance(transformer_estimator, X_train_scaled, y_train, n_repeats=10, random_state=42, scoring='accuracy')
-    importances = pd.Series(result.importances_mean, index=X_train.columns)
+    result = permutation_importance(transformer_model, X_train_scaled, y_train, n_repeats=10, random_state=42, scoring='accuracy')
+    importances = pd.Series(result.importances_mean, index=input_data.columns)
     st.write(importances)
     fig, ax = plt.subplots()
     importances.plot.bar(ax=ax)
