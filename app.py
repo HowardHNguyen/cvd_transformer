@@ -43,6 +43,9 @@ transformer_model.eval()
 # Load the scaler
 scaler = pd.read_pickle('scaler.pkl')
 
+# Load the training data
+X_train_scaled = pd.read_pickle('X_train_scaled.pkl')
+
 # Streamlit app
 st.title("Cardiovascular Disease Prediction (Transformer)")
 
