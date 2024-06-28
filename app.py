@@ -3,6 +3,7 @@ import pandas as pd
 import numpy as np
 import joblib
 import torch
+import torch.nn as nn
 import matplotlib.pyplot as plt
 from sklearn.metrics import roc_curve, auc
 from sklearn.inspection import permutation_importance
