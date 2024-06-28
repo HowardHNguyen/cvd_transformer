@@ -7,6 +7,22 @@ import matplotlib.pyplot as plt
 from sklearn.metrics import roc_curve, auc
 from sklearn.inspection import permutation_importance
 
+# Define the TransformerModel class
+class TransformerModel(nn.Module):
+    def __init__(self, input_dim, num_classes):
+        super(TransformerModel, self).__init__()
+        self.embedding = nn.Linear(input_dim, 128)
+        self.transformer = nn.Transformer(nhead=8, num_encoder_layers=3)
+        self.fc = nn.Linear(128, num_classes)
+
+    def forward(self, x):
+        x = self.embedding(x)
+        x = x.unsqueeze(0)  # Add batch dimension
+        x = self.transformer(x)
+        x = x.squeeze(0)  # Remove batch dimension
+        x = self.fc(x)
+        return x
+
 # Load the model and scaler
 transformer_model = TransformerModel(input_dim=13, num_classes=2)
 transformer_model.load_state_dict(torch.load('transformer_model.pth', map_location=torch.device('cpu')))
