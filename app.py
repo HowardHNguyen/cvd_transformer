@@ -64,6 +64,7 @@ class TransformerEstimator(BaseEstimator, ClassifierMixin):
 transformer_model = TransformerModel(input_dim=13, num_classes=2)
 try:
     transformer_model.load_state_dict(torch.load('transformer_model.pth', map_location=torch.device('cpu')))
+    st.success("Model loaded successfully")
 except RuntimeError as e:
     st.error(f"Error loading model state_dict: {e}")
 transformer_model.eval()
@@ -93,95 +94,90 @@ def user_input_features():
     cursmoke = st.sidebar.selectbox('Current Smoker', [0, 1])
     glucose = st.sidebar.slider('Glucose', 39, 478, 117)
     diabetes = st.sidebar.selectbox('Diabetes', [0, 1])
-    heartrate = st.sidebar.slider('Heart Rate', 37, 220, 91)
+    heartrte = st.sidebar.slider('Heart Rate', 37, 220, 91)
     cigpday = st.sidebar.slider('Cigarettes Per Day', 0, 90, 20)
     bpmeds = st.sidebar.selectbox('On BP Meds', [0, 1])
     stroke = st.sidebar.selectbox('Stroke', [0, 1])
-    hyperten = st.sidebar.selectbox('Hypertension', [0, 1])
+    hyp = st.sidebar.selectbox('Hypertension', [0, 1])
     
-    data = {
-        'AGE': age,
-        'TOTCHOL': totchol,
-        'SYSBP': sysbp,
-        'DIABP': diabp,
-        'BMI': bmi,
-        'CURSMOKE': cursmoke,
-        'GLUCOSE': glucose,
-        'DIABETES': diabetes,
-        'HEARTRTE': heartrate,
-        'CIGPDAY': cigpday,
-        'BPMEDS': bpmeds,
-        'STROKE': stroke,
-        'HYPERTEN': hyperten
-    }
+    data = {'AGE': age,
+            'TOTCHOL': totchol,
+            'SYSBP': sysbp,
+            'DIABP': diabp,
+            'BMI': bmi,
+            'CURSMOKE': cursmoke,
+            'GLUCOSE': glucose,
+            'DIABETES': diabetes,
+            'HEARTRTE': heartrte,
+            'CIGPDAY': cigpday,
+            'BPMEDS': bpmeds,
+            'STROKE': stroke,
+            'HYPERTEN': hyp}
+    
     features = pd.DataFrame(data, index=[0])
     return features
 
 input_data = user_input_features()
 
+# Display user input features
 st.subheader('User Input Parameters')
 st.write(input_data)
 
-# Ensure the correct number of features
-required_features = ['AGE', 'TOTCHOL', 'SYSBP', 'DIABP', 'BMI', 'CURSMOKE', 'GLUCOSE', 'DIABETES', 'HEARTRTE', 'CIGPDAY', 'BPMEDS', 'STROKE', 'HYPERTEN']
-input_data = input_data[required_features]
-
-# Scale input data
+# Scale the input data
 input_data_scaled = scaler.transform(input_data)
-input_tensor = torch.tensor(input_data_scaled, dtype=torch.float32)
 
 # Prediction
-if st.sidebar.button("PREDICT NOW"):
-    with torch.no_grad():
-        output = transformer_model(input_tensor.unsqueeze(1))
-        _, prediction = torch.max(output, 1)
-        prediction_proba = F.softmax(output, dim=1).numpy()
-    
-    st.subheader('Prediction')
-    if prediction.item() == 1:
-        st.write("Cardiovascular Disease Detected")
-    else:
-        st.write("No Cardiovascular Disease")
-    
-    st.subheader('Prediction Probability')
-    proba_df = pd.DataFrame(prediction_proba, columns=["No CVD", "CVD"])
-    st.write(proba_df)
-    
-    # Plot prediction probabilities
+prediction = transformer_estimator.predict(input_data_scaled)
+prediction_proba = transformer_estimator.predict_proba(input_data_scaled)
+
+# Display prediction
+st.subheader('Prediction')
+cvd_labels = np.array(['No Cardiovascular Disease', 'Cardiovascular Disease'])
+st.write(cvd_labels[prediction])
+
+# Display prediction probability
+st.subheader('Prediction Probability')
+st.write(prediction_proba)
+
+fig, ax = plt.subplots()
+ax.bar(cvd_labels, prediction_proba[0], color=['blue', 'red'])
+plt.xlabel('CVD Status')
+plt.ylabel('Probability')
+plt.title('Prediction Probability')
+st.pyplot(fig)
+
+# Feature Importances
+st.subheader('Feature Importances (Transformer)')
+try:
+    result = permutation_importance(transformer_estimator, X_train_scaled, y_train, n_repeats=10, random_state=42, scoring='accuracy')
+    importances = pd.Series(result.importances_mean, index=X_train.columns)
+    st.write(importances)
     fig, ax = plt.subplots()
-    ax.bar(proba_df.columns, prediction_proba[0], color=['blue', 'red'])
-    ax.set_ylim([0, 1])
-    plt.title('Prediction Probability')
+    importances.plot.bar(ax=ax)
+    ax.set_title('Feature Importances (Permutation Importance)')
+    ax.set_ylabel('Importance')
     st.pyplot(fig)
+except Exception as e:
+    st.error(f"Error calculating feature importances: {e}")
 
-    # Feature Importance using Permutation Importance
-    st.subheader('Feature Importances (Transformer)')
-    
-    result = permutation_importance(transformer_estimator, X_train_scaled, y_train, n_repeats=10, random_state=42)
-    feature_importance = pd.DataFrame(result.importances_mean, index=input_data.columns, columns=['Importance']).sort_values(by='Importance', ascending=False)
-    
-    st.write(f"Feature Importances: {feature_importance}")
-
-    fig, ax = plt.subplots()
-    feature_importance.plot(kind='bar', ax=ax)
-    plt.title('Feature Importances (Permutation Importance)')
-    plt.xlabel('Features')
-    plt.ylabel('Importance')
-    st.pyplot(fig)
-
-    # ROC Curve
-    st.subheader('Model Performance (ROC Curve)')
-    y_test = joblib.load('transformer_y_test.pkl')  
+# ROC Curve
+st.subheader('Model Performance (ROC Curve)')
+try:
+    y_test = joblib.load('y_test.pkl')
     y_pred_proba = joblib.load('transformer_y_pred_proba.pkl')
+    
     fpr, tpr, _ = roc_curve(y_test, y_pred_proba[:, 1])
     roc_auc = auc(fpr, tpr)
-    plt.figure()
-    plt.plot(fpr, tpr, color='blue', lw=2, label=f'Transformer (AUC = {roc_auc:.4f})')
-    plt.plot([0, 1], [0, 1], color='navy', lw=2, linestyle='--')
-    plt.xlim([0.0, 1.0])
-    plt.ylim([0.0, 1.05])
-    plt.xlabel('False Positive Rate')
-    plt.ylabel('True Positive Rate')
-    plt.title('Receiver Operating Characteristic (ROC) Curve')
-    plt.legend(loc="lower right")
-    st.pyplot(plt)
+    
+    fig, ax = plt.subplots()
+    ax.plot(fpr, tpr, color='blue', lw=2, label='Transformer (AUC = %0.4f)' % roc_auc)
+    ax.plot([0, 1], [0, 1], color='gray', lw=2, linestyle='--')
+    ax.set_xlim([0.0, 1.0])
+    ax.set_ylim([0.0, 1.05])
+    ax.set_xlabel('False Positive Rate')
+    ax.set_ylabel('True Positive Rate')
+    ax.set_title('Receiver Operating Characteristic (ROC) Curve')
+    ax.legend(loc='lower right')
+    st.pyplot(fig)
+except Exception as e:
+    st.error(f"Error loading or plotting ROC curve data: {e}")
