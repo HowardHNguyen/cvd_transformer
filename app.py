@@ -10,7 +10,7 @@ class TransformerModel(nn.Module):
     def __init__(self, input_dim, num_classes):
         super(TransformerModel, self).__init__()
         self.embedding = nn.Linear(input_dim, 128)
-        self.pos_encoder = nn.Parameter(torch.zeros(1, 1, 128))
+        self.pos_encoder = nn.Parameter(torch.zeros(1, 128))
         encoder_layers = nn.TransformerEncoderLayer(d_model=128, nhead=8)
         self.transformer_encoder = nn.TransformerEncoder(encoder_layers, num_layers=3)
         self.fc1 = nn.Linear(128, 64)
@@ -22,7 +22,7 @@ class TransformerModel(nn.Module):
         print("After embedding:", x.shape)
         x = x + self.pos_encoder
         print("After adding positional encoding:", x.shape)
-        x = self.transformer_encoder(x.unsqueeze(1)).squeeze(1)
+        x = self.transformer_encoder(x).squeeze(1)
         print("After transformer encoder:", x.shape)
         x = self.fc1(x)
         print("After first fully connected layer:", x.shape)
@@ -61,7 +61,7 @@ scaler = joblib.load('scaler.pkl')
 def predict_and_display(input_data):
     input_data_scaled = scaler.transform(input_data)
     input_tensor = torch.tensor(input_data_scaled, dtype=torch.float32)
-    input_tensor = input_tensor.unsqueeze(0)  # Ensure the input tensor has the batch dimension
+    input_tensor = input_tensor.unsqueeze(1)  # Ensure the input tensor has the correct dimensions for the transformer
     print("Input tensor shape for prediction:", input_tensor.shape)
     
     # Prediction
