@@ -45,6 +45,7 @@ scaler = pd.read_pickle('scaler.pkl')
 
 # Load the training data
 X_train_scaled = joblib.load('X_train_scaled.pkl')
+y_train = joblib.load('y_train.pkl')
 
 # Streamlit app
 st.title("Cardiovascular Disease Prediction (Transformer)")
