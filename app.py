@@ -33,7 +33,9 @@ transformer_model = TransformerModel(input_dim=13, num_classes=2)
 state_dict = torch.load('transformer_model.pth', map_location=torch.device('cpu'))
 
 # Load the state dict into the model
-transformer_model.load_state_dict(state_dict)
+missing_keys, unexpected_keys = transformer_model.load_state_dict(state_dict, strict=False)
+print(f'Missing keys: {missing_keys}')
+print(f'Unexpected keys: {unexpected_keys}')
 
 # Load the scaler
 scaler = joblib.load('scaler.pkl')
