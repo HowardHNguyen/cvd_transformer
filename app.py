@@ -61,6 +61,8 @@ scaler = joblib.load('scaler.pkl')
 def predict_and_display(input_data):
     input_data_scaled = scaler.transform(input_data)
     input_tensor = torch.tensor(input_data_scaled, dtype=torch.float32)
+    input_tensor = input_tensor.unsqueeze(0)  # Ensure the input tensor has the batch dimension
+    print("Input tensor shape for prediction:", input_tensor.shape)
     
     # Prediction
     with torch.no_grad():
