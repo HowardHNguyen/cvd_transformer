@@ -51,56 +51,63 @@ scaler = joblib.load('scaler.pkl')
 
 # Function to make predictions and display results
 def predict_and_display(input_data):
-    input_data_scaled = scaler.transform(input_data)
-    input_tensor = torch.tensor(input_data_scaled, dtype=torch.float32)
+    try:
+        input_data_scaled = scaler.transform(input_data)
+        input_tensor = torch.tensor(input_data_scaled, dtype=torch.float32)
+        
+        # Prediction
+        with torch.no_grad():
+            prediction = transformer_model(input_tensor)
+            probabilities = nn.Softmax(dim=1)(prediction).numpy()
+        
+        # Check the shape and type of the prediction and probabilities
+        st.write(f"Prediction shape: {prediction.shape}")
+        st.write(f"Probabilities shape: {probabilities.shape}")
+        st.write(f"Probabilities: {probabilities}")
+        
+        st.write(f"Prediction: {'CVD' if np.argmax(probabilities, axis=1)[0] == 1 else 'No CVD'}")
+        st.write(f"Prediction Probability: No CVD: {probabilities[0][0]:.4f}, CVD: {probabilities[0][1]:.4f}")
     
-    # Prediction
-    with torch.no_grad():
-        prediction = transformer_model(input_tensor).numpy()
+        # Feature Importances
+        feature_importances = np.random.rand(13)  # Replace with actual feature importances calculation
+        feature_names = ['AGE', 'TOTCHOL', 'SYSBP', 'DIABP', 'BMI', 'CURSMOKE', 'GLUCOSE', 'DIABETES', 'HEARTRTE', 'CIGPDAY', 'BPMEDS', 'STROKE', 'HYPERTEN']
+        importance_dict = {name: importance for name, importance in zip(feature_names, feature_importances)}
     
-    # Calculate probabilities
-    probabilities = nn.Softmax(dim=1)(torch.tensor(prediction)).numpy()
-
-    st.write(f"Prediction: {'CVD' if np.argmax(probabilities, axis=1)[0] == 1 else 'No CVD'}")
-    st.write(f"Prediction Probability: No CVD: {probabilities[0][0]:.4f}, CVD: {probabilities[0][1]:.4f}")
-
-    # Feature Importances
-    feature_importances = np.random.rand(13)  # Replace with actual feature importances calculation
-    feature_names = ['AGE', 'TOTCHOL', 'SYSBP', 'DIABP', 'BMI', 'CURSMOKE', 'GLUCOSE', 'DIABETES', 'HEARTRTE', 'CIGPDAY', 'BPMEDS', 'STROKE', 'HYPERTEN']
-    importance_dict = {name: importance for name, importance in zip(feature_names, feature_importances)}
-
-    st.write("Feature Importances:")
-    sorted_importances = sorted(importance_dict.items(), key=lambda item: item[1], reverse=True)
-    for feature, importance in sorted_importances:
-        st.write(f"{feature}: {importance:.4f}")
-
-    # Plot Feature Importances
-    fig, ax = plt.subplots()
-    y_pos = np.arange(len(feature_names))
-    ax.barh(y_pos, feature_importances, align='center')
-    ax.set_yticks(y_pos)
-    ax.set_yticklabels(feature_names)
-    ax.invert_yaxis()
-    ax.set_xlabel('Importance')
-    ax.set_title('Feature Importances')
-    st.pyplot(fig)
-
-    # ROC Curve
-    y_true = np.random.randint(2, size=100)  # Replace with actual y_true
-    y_scores = np.random.rand(100, 2)[:, 1]  # Replace with actual y_scores from model
-    fpr, tpr, _ = roc_curve(y_true, y_scores)
-    roc_auc = roc_auc_score(y_true, y_scores)
-
-    fig, ax = plt.subplots()
-    ax.plot(fpr, tpr, color='blue', lw=2, label='ROC curve (area = %0.2f)' % roc_auc)
-    ax.plot([0, 1], [0, 1], color='gray', lw=2, linestyle='--')
-    ax.set_xlim([0.0, 1.0])
-    ax.set_ylim([0.0, 1.05])
-    ax.set_xlabel('False Positive Rate')
-    ax.set_ylabel('True Positive Rate')
-    ax.set_title('Receiver Operating Characteristic (ROC) Curve')
-    ax.legend(loc="lower right")
-    st.pyplot(fig)
+        st.write("Feature Importances:")
+        sorted_importances = sorted(importance_dict.items(), key=lambda item: item[1], reverse=True)
+        for feature, importance in sorted_importances:
+            st.write(f"{feature}: {importance:.4f}")
+    
+        # Plot Feature Importances
+        fig, ax = plt.subplots()
+        y_pos = np.arange(len(feature_names))
+        ax.barh(y_pos, feature_importances, align='center')
+        ax.set_yticks(y_pos)
+        ax.set_yticklabels(feature_names)
+        ax.invert_yaxis()
+        ax.set_xlabel('Importance')
+        ax.set_title('Feature Importances')
+        st.pyplot(fig)
+    
+        # ROC Curve
+        y_true = np.random.randint(2, size=100)  # Replace with actual y_true
+        y_scores = np.random.rand(100, 2)[:, 1]  # Replace with actual y_scores from model
+        fpr, tpr, _ = roc_curve(y_true, y_scores)
+        roc_auc = roc_auc_score(y_true, y_scores)
+    
+        fig, ax = plt.subplots()
+        ax.plot(fpr, tpr, color='blue', lw=2, label='ROC curve (area = %0.2f)' % roc_auc)
+        ax.plot([0, 1], [0, 1], color='gray', lw=2, linestyle='--')
+        ax.set_xlim([0.0, 1.0])
+        ax.set_ylim([0.0, 1.05])
+        ax.set_xlabel('False Positive Rate')
+        ax.set_ylabel('True Positive Rate')
+        ax.set_title('Receiver Operating Characteristic (ROC) Curve')
+        ax.legend(loc="lower right")
+        st.pyplot(fig)
+    
+    except Exception as e:
+        st.error(f"An error occurred: {e}")
 
 # Streamlit UI components
 st.title("Cardiovascular Disease Prediction (Transformer)")
