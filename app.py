@@ -61,7 +61,7 @@ class TransformerEstimator(BaseEstimator, ClassifierMixin):
         return probabilities.numpy()
 
 # Load the model and data
-transformer_model = TransformerModel(input_dim=15, num_classes=2)
+transformer_model = TransformerModel(input_dim=13, num_classes=2)
 transformer_model.load_state_dict(torch.load('transformer_model.pth', map_location=torch.device('cpu')))
 transformer_model.eval()
 
@@ -118,6 +118,10 @@ input_data = user_input_features()
 
 st.subheader('User Input Parameters')
 st.write(input_data)
+
+# Ensure the correct number of features
+required_features = ['AGE', 'TOTCHOL', 'SYSBP', 'DIABP', 'BMI', 'CURSMOKE', 'GLUCOSE', 'DIABETES', 'HEARTRTE', 'CIGPDAY', 'BPMEDS', 'STROKE', 'HYPERTEN']
+input_data = input_data[required_features]
 
 # Scale input data
 input_data_scaled = scaler.transform(input_data)
