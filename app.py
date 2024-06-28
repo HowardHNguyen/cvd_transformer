@@ -5,8 +5,8 @@ import torch.nn.functional as F
 import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
-import shap
 from sklearn.metrics import roc_curve, auc
+from sklearn.inspection import permutation_importance
 import joblib
 
 class TransformerModel(nn.Module):
@@ -97,7 +97,7 @@ st.write(input_data)
 input_data_scaled = scaler.transform(input_data)
 input_tensor = torch.tensor(input_data_scaled, dtype=torch.float32)
 
-# Wrapper function for SHAP KernelExplainer
+# Wrapper function for permutation importance
 def model_wrapper(data):
     data_tensor = torch.tensor(data, dtype=torch.float32).unsqueeze(1)
     with torch.no_grad():
@@ -128,24 +128,19 @@ if st.sidebar.button("PREDICT NOW"):
     plt.title('Prediction Probability')
     st.pyplot(fig)
 
-    # Feature Importance using SHAP
+    # Feature Importance using Permutation Importance
     st.subheader('Feature Importances (Transformer)')
     
-    background_data = X_train_scaled[:100]
-    # Ensure the background data has no NaNs or infinite values
-    background_data = np.nan_to_num(background_data)
+    result = permutation_importance(transformer_model, X_train_scaled, y_train, n_repeats=10, random_state=42, scoring='accuracy')
+    feature_importance = pd.DataFrame(result.importances_mean, index=input_data.columns, columns=['Importance']).sort_values(by='Importance', ascending=False)
     
-    explainer = shap.KernelExplainer(model_wrapper, background_data)
-    input_data_scaled = np.nan_to_num(input_data_scaled)
-    shap_values = explainer.shap_values(input_data_scaled)
-    
-    # Debug shapes
-    st.write(f"SHAP values shape: {np.array(shap_values).shape}")
-    st.write(f"Input data shape: {input_data.shape}")
-    
-    # Plot SHAP values
+    st.write(f"Feature Importances: {feature_importance}")
+
     fig, ax = plt.subplots()
-    shap.summary_plot(shap_values, input_data, plot_type="bar", show=False)
+    feature_importance.plot(kind='bar', ax=ax)
+    plt.title('Feature Importances (Permutation Importance)')
+    plt.xlabel('Features')
+    plt.ylabel('Importance')
     st.pyplot(fig)
 
     # ROC Curve
