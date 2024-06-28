@@ -124,7 +124,7 @@ if st.sidebar.button("PREDICT NOW"):
     # Feature Importance using SHAP
     st.subheader('Feature Importances (Transformer)')
     
-    explainer = shap.DeepExplainer(transformer_model, torch.tensor(X_train_scaled[:100], dtype=torch.float32).unsqueeze(1))
+    explainer = shap.KernelExplainer(transformer_model, torch.tensor(X_train_scaled[:100], dtype=torch.float32).unsqueeze(1))
     shap_values = explainer.shap_values(input_tensor.unsqueeze(0))
     
     # Debug shapes
