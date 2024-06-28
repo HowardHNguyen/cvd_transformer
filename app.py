@@ -1,5 +1,9 @@
+import streamlit as st
+import numpy as np
 import torch
 import torch.nn as nn
+import joblib
+from sklearn.preprocessing import StandardScaler
 
 # Define the TransformerModel class
 class TransformerModel(nn.Module):
@@ -13,11 +17,17 @@ class TransformerModel(nn.Module):
         self.fc2 = nn.Linear(64, num_classes)
 
     def forward(self, x):
+        print("Input shape:", x.shape)
         x = self.embedding(x)
+        print("After embedding:", x.shape)
         x = x + self.pos_encoder
+        print("After adding positional encoding:", x.shape)
         x = self.transformer_encoder(x.unsqueeze(1)).squeeze(1)
+        print("After transformer encoder:", x.shape)
         x = self.fc1(x)
+        print("After first fully connected layer:", x.shape)
         x = self.fc2(x)
+        print("After second fully connected layer:", x.shape)
         return x
 
 # Instantiate the model with the correct dimensions
@@ -44,16 +54,8 @@ try:
 except RuntimeError as e:
     print(str(e))
 
-# Continue with Streamlit app if loading is successful
-import streamlit as st
-import numpy as np
-import joblib
-from sklearn.preprocessing import StandardScaler
-
 # Load the scaler
 scaler = joblib.load('scaler.pkl')
-
-# Your Streamlit app code continues...
 
 # Function to make predictions and display results
 def predict_and_display(input_data):
