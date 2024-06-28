@@ -36,12 +36,13 @@ print("\nModel state dict keys:")
 for key, param in transformer_model.state_dict().items():
     print(key, param.shape)
 
-# Load the state dict into the model without strict mode to see the mismatch
-missing_keys, unexpected_keys = transformer_model.load_state_dict(state_dict, strict=False)
-
-# Print missing and unexpected keys
-print(f"Missing keys: {missing_keys}")
-print(f"Unexpected keys: {unexpected_keys}")
+# Attempt to load the state dict into the model and catch the error if it fails
+try:
+    missing_keys, unexpected_keys = transformer_model.load_state_dict(state_dict, strict=False)
+    print(f"Missing keys: {missing_keys}")
+    print(f"Unexpected keys: {unexpected_keys}")
+except RuntimeError as e:
+    print(str(e))
 
 # Continue with Streamlit app if loading is successful
 import streamlit as st
