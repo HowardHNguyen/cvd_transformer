@@ -32,6 +32,14 @@ transformer_model = TransformerModel(input_dim=13, num_classes=2)
 # Load the state dict
 state_dict = torch.load('transformer_model.pth', map_location=torch.device('cpu'))
 
+# Diagnostic: Print state_dict keys and shapes
+for k, v in state_dict.items():
+    print(f'{k}: {v.shape}')
+
+# Diagnostic: Print model state_dict keys and shapes
+for k, v in transformer_model.state_dict().items():
+    print(f'{k}: {v.shape}')
+
 # Load the state dict into the model
 missing_keys, unexpected_keys = transformer_model.load_state_dict(state_dict, strict=False)
 print(f'Missing keys: {missing_keys}')
