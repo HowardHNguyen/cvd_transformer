@@ -36,7 +36,7 @@ class TransformerModel(nn.Module):
         return x
 
 # Load the model and data
-transformer_model = TransformerModel(input_dim=13, num_classes=2)
+transformer_model = TransformerModel(input_dim=15, num_classes=2)
 transformer_model.load_state_dict(torch.load('transformer_model.pth', map_location=torch.device('cpu')))
 transformer_model.eval()
 
@@ -65,6 +65,8 @@ def user_input_features():
     bpmeds = st.sidebar.selectbox('On BP Meds', [0, 1])
     stroke = st.sidebar.selectbox('Stroke', [0, 1])
     hyperten = st.sidebar.selectbox('Hypertension', [0, 1])
+    hdlc = st.sidebar.slider('HDL Cholesterol', 10, 100, 50)
+    ldlc = st.sidebar.slider('LDL Cholesterol', 80, 565, 100)
     
     data = {
         'AGE': age,
@@ -79,7 +81,9 @@ def user_input_features():
         'CIGPDAY': cigpday,
         'BPMEDS': bpmeds,
         'STROKE': stroke,
-        'HYPERTEN': hyperten
+        'HYPERTEN': hyperten,
+        'HDLC': hdlc,
+        'LDLC': ldlc
     }
     features = pd.DataFrame(data, index=[0])
     return features
