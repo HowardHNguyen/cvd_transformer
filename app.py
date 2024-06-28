@@ -97,6 +97,13 @@ st.write(input_data)
 input_data_scaled = scaler.transform(input_data)
 input_tensor = torch.tensor(input_data_scaled, dtype=torch.float32)
 
+# Wrapper function for SHAP KernelExplainer
+def model_wrapper(data):
+    data_tensor = torch.tensor(data, dtype=torch.float32).unsqueeze(1)
+    with torch.no_grad():
+        output = transformer_model(data_tensor)
+        return F.softmax(output, dim=1).numpy()
+
 # Prediction
 if st.sidebar.button("PREDICT NOW"):
     with torch.no_grad():
@@ -125,8 +132,8 @@ if st.sidebar.button("PREDICT NOW"):
     st.subheader('Feature Importances (Transformer)')
     
     background_data = X_train_scaled[:100]
-    explainer = shap.KernelExplainer(transformer_model, background_data)
-    shap_values = explainer.shap_values(input_tensor.numpy())
+    explainer = shap.KernelExplainer(model_wrapper, background_data)
+    shap_values = explainer.shap_values(input_data_scaled)
     
     # Debug shapes
     st.write(f"SHAP values shape: {np.array(shap_values).shape}")
