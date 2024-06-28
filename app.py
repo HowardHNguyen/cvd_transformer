@@ -41,8 +41,8 @@ class TransformerEstimator(BaseEstimator, ClassifierMixin):
         self.model = model
     
     def fit(self, X, y):
-        # This is just a placeholder
-        pass
+        self.classes_ = np.unique(y)
+        return self
     
     def predict(self, X):
         self.model.eval()
@@ -74,6 +74,7 @@ y_train = joblib.load('y_train.pkl')
 
 # Wrap the transformer model
 transformer_estimator = TransformerEstimator(transformer_model)
+transformer_estimator.fit(X_train_scaled, y_train)
 
 # Streamlit app
 st.title("Cardiovascular Disease Prediction (Transformer)")
