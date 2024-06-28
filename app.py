@@ -61,7 +61,7 @@ def predict_and_display(input_data):
     # Calculate probabilities
     probabilities = nn.Softmax(dim=1)(torch.tensor(prediction)).numpy()
 
-    st.write(f"Prediction: {'CVD' if np.argmax(probabilities) == 1 else 'No CVD'}")
+    st.write(f"Prediction: {'CVD' if np.argmax(probabilities, axis=1)[0] == 1 else 'No CVD'}")
     st.write(f"Prediction Probability: No CVD: {probabilities[0][0]:.4f}, CVD: {probabilities[0][1]:.4f}")
 
     # Feature Importances
