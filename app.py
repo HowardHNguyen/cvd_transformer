@@ -43,9 +43,12 @@ for k, v in transformer_model.state_dict().items():
     print(f'{k}: {v.shape}')
 
 # Load the state dict into the model
-missing_keys, unexpected_keys = transformer_model.load_state_dict(state_dict, strict=False)
-print(f'\nMissing keys: {missing_keys}')
-print(f'Unexpected keys: {unexpected_keys}')
+try:
+    missing_keys, unexpected_keys = transformer_model.load_state_dict(state_dict, strict=False)
+    print(f'\nMissing keys: {missing_keys}')
+    print(f'Unexpected keys: {unexpected_keys}')
+except RuntimeError as e:
+    print(f"Error loading state dict: {e}")
 
 # Load the scaler
 scaler = joblib.load('scaler.pkl')
