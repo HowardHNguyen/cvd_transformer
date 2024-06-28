@@ -8,6 +8,7 @@ import matplotlib.pyplot as plt
 from sklearn.metrics import roc_curve, auc
 from sklearn.inspection import permutation_importance
 import joblib
+from sklearn.base import BaseEstimator, ClassifierMixin
 
 class TransformerModel(nn.Module):
     def __init__(self, input_dim, num_classes, d_model=128, max_seq_length=1, nhead=8, num_layers=3):
@@ -35,6 +36,30 @@ class TransformerModel(nn.Module):
         x = self.fc2(x)
         return x
 
+class TransformerEstimator(BaseEstimator, ClassifierMixin):
+    def __init__(self, model):
+        self.model = model
+    
+    def fit(self, X, y):
+        # This is just a placeholder
+        pass
+    
+    def predict(self, X):
+        self.model.eval()
+        X_tensor = torch.tensor(X, dtype=torch.float32).unsqueeze(1)
+        with torch.no_grad():
+            outputs = self.model(X_tensor)
+            _, predictions = torch.max(outputs, 1)
+        return predictions.numpy()
+    
+    def predict_proba(self, X):
+        self.model.eval()
+        X_tensor = torch.tensor(X, dtype=torch.float32).unsqueeze(1)
+        with torch.no_grad():
+            outputs = self.model(X_tensor)
+            probabilities = F.softmax(outputs, dim=1)
+        return probabilities.numpy()
+
 # Load the model and data
 transformer_model = TransformerModel(input_dim=15, num_classes=2)
 transformer_model.load_state_dict(torch.load('transformer_model.pth', map_location=torch.device('cpu')))
@@ -46,6 +71,9 @@ scaler = pd.read_pickle('scaler.pkl')
 # Load the training data
 X_train_scaled = joblib.load('X_train_scaled.pkl')
 y_train = joblib.load('y_train.pkl')
+
+# Wrap the transformer model
+transformer_estimator = TransformerEstimator(transformer_model)
 
 # Streamlit app
 st.title("Cardiovascular Disease Prediction (Transformer)")
@@ -98,13 +126,6 @@ st.write(input_data)
 input_data_scaled = scaler.transform(input_data)
 input_tensor = torch.tensor(input_data_scaled, dtype=torch.float32)
 
-# Wrapper function for permutation importance
-def model_wrapper(data):
-    data_tensor = torch.tensor(data, dtype=torch.float32).unsqueeze(1)
-    with torch.no_grad():
-        output = transformer_model(data_tensor)
-        return F.softmax(output, dim=1).numpy()
-
 # Prediction
 if st.sidebar.button("PREDICT NOW"):
     with torch.no_grad():
@@ -132,7 +153,7 @@ if st.sidebar.button("PREDICT NOW"):
     # Feature Importance using Permutation Importance
     st.subheader('Feature Importances (Transformer)')
     
-    result = permutation_importance(transformer_model, X_train_scaled, y_train, n_repeats=10, random_state=42, scoring='accuracy')
+    result = permutation_importance(transformer_estimator, X_train_scaled, y_train, n_repeats=10, random_state=42, scoring='accuracy')
     feature_importance = pd.DataFrame(result.importances_mean, index=input_data.columns, columns=['Importance']).sort_values(by='Importance', ascending=False)
     
     st.write(f"Feature Importances: {feature_importance}")
