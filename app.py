@@ -95,8 +95,6 @@ def user_input_features():
     bpmeds = st.sidebar.selectbox('On BP Meds', [0, 1])
     stroke = st.sidebar.selectbox('Stroke', [0, 1])
     hyperten = st.sidebar.selectbox('Hypertension', [0, 1])
-    hdlc = st.sidebar.slider('HDL Cholesterol', 10, 100, 50)
-    ldlc = st.sidebar.slider('LDL Cholesterol', 80, 565, 100)
     
     data = {
         'AGE': age,
@@ -111,9 +109,7 @@ def user_input_features():
         'CIGPDAY': cigpday,
         'BPMEDS': bpmeds,
         'STROKE': stroke,
-        'HYPERTEN': hyperten,
-        'HDLC': hdlc,
-        'LDLC': ldlc
+        'HYPERTEN': hyperten
     }
     features = pd.DataFrame(data, index=[0])
     return features
