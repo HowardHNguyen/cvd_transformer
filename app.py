@@ -132,7 +132,11 @@ if st.sidebar.button("PREDICT NOW"):
     st.subheader('Feature Importances (Transformer)')
     
     background_data = X_train_scaled[:100]
+    # Ensure the background data has no NaNs or infinite values
+    background_data = np.nan_to_num(background_data)
+    
     explainer = shap.KernelExplainer(model_wrapper, background_data)
+    input_data_scaled = np.nan_to_num(input_data_scaled)
     shap_values = explainer.shap_values(input_data_scaled)
     
     # Debug shapes
