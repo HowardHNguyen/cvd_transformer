@@ -76,39 +76,3 @@ input_data = np.array([[age, totchol, sysbp, diabp, bmi, cursmoke, glucose, diab
 # Predict and display results
 if st.button("Predict"):
     predict_and_display(input_data)
-
-# Feature Importances
-st.subheader('Feature Importances (Transformer)')
-try:
-    result = permutation_importance(transformer_model, X_train_scaled, y_train, n_repeats=10, random_state=42, scoring='accuracy')
-    importances = pd.Series(result.importances_mean, index=input_data.columns)
-    st.write(importances)
-    fig, ax = plt.subplots()
-    importances.plot.bar(ax=ax)
-    ax.set_title('Feature Importances (Permutation Importance)')
-    ax.set_ylabel('Importance')
-    st.pyplot(fig)
-except Exception as e:
-    st.error(f"Error calculating feature importances: {e}")
-
-# ROC Curve
-st.subheader('Model Performance (ROC Curve)')
-try:
-    y_test = joblib.load('y_test.pkl')
-    y_pred_proba = joblib.load('transformer_y_pred_proba.pkl')
-    
-    fpr, tpr, _ = roc_curve(y_test, y_pred_proba[:, 1])
-    roc_auc = auc(fpr, tpr)
-    
-    fig, ax = plt.subplots()
-    ax.plot(fpr, tpr, color='blue', lw=2, label='Transformer (AUC = %0.4f)' % roc_auc)
-    ax.plot([0, 1], [0, 1], color='gray', lw=2, linestyle='--')
-    ax.set_xlim([0.0, 1.0])
-    ax.set_ylim([0.0, 1.05])
-    ax.set_xlabel('False Positive Rate')
-    ax.set_ylabel('True Positive Rate')
-    ax.set_title('Receiver Operating Characteristic (ROC) Curve')
-    ax.legend(loc='lower right')
-    st.pyplot(fig)
-except Exception as e:
-    st.error(f"Error loading or plotting ROC curve data: {e}")
