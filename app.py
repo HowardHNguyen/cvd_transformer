@@ -1,34 +1,41 @@
 import streamlit as st
 import pandas as pd
 import numpy as np
-import joblib
 import torch
 import torch.nn as nn
+import joblib
+from sklearn.preprocessing import StandardScaler
+from sklearn.metrics import roc_curve, roc_auc_score, accuracy_score
 import matplotlib.pyplot as plt
-from sklearn.metrics import roc_curve, auc
-from sklearn.inspection import permutation_importance
+import shap
 
 # Define the TransformerModel class
 class TransformerModel(nn.Module):
     def __init__(self, input_dim, num_classes):
         super(TransformerModel, self).__init__()
         self.embedding = nn.Linear(input_dim, 128)
-        self.transformer = nn.Transformer(nhead=8, num_encoder_layers=3)
-        self.fc = nn.Linear(128, num_classes)
+        self.transformer_encoder = nn.TransformerEncoder(
+            nn.TransformerEncoderLayer(d_model=128, nhead=8),
+            num_layers=3
+        )
+        self.fc1 = nn.Linear(128, 64)
+        self.fc2 = nn.Linear(64, num_classes)
+        self.pos_encoder = nn.Parameter(torch.zeros(1, 1, 128))
 
     def forward(self, x):
         x = self.embedding(x)
-        x = x.unsqueeze(0)  # Add batch dimension
-        x = self.transformer(x)
-        x = x.squeeze(0)  # Remove batch dimension
-        x = self.fc(x)
+        x = x + self.pos_encoder
+        x = self.transformer_encoder(x.unsqueeze(1)).squeeze(1)
+        x = self.fc1(x)
+        x = self.fc2(x)
         return x
 
-# Load the model and scaler
+# Load the model
 transformer_model = TransformerModel(input_dim=13, num_classes=2)
 transformer_model.load_state_dict(torch.load('transformer_model.pth', map_location=torch.device('cpu')))
 transformer_model.eval()
 
+# Load other necessary data and objects
 scaler = joblib.load('scaler.pkl')
 
 st.title('Cardiovascular Disease Prediction (Transformer)')
