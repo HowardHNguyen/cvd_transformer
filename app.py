@@ -14,13 +14,11 @@ class TransformerModel(nn.Module):
     def __init__(self, input_dim, num_classes):
         super(TransformerModel, self).__init__()
         self.embedding = nn.Linear(input_dim, 128)
-        self.transformer_encoder = nn.TransformerEncoder(
-            nn.TransformerEncoderLayer(d_model=128, nhead=8),
-            num_layers=3
-        )
+        self.pos_encoder = nn.Parameter(torch.zeros(1, 1, 128))
+        encoder_layers = nn.TransformerEncoderLayer(d_model=128, nhead=8)
+        self.transformer_encoder = nn.TransformerEncoder(encoder_layers, num_layers=3)
         self.fc1 = nn.Linear(128, 64)
         self.fc2 = nn.Linear(64, num_classes)
-        self.pos_encoder = nn.Parameter(torch.zeros(1, 1, 128))
 
     def forward(self, x):
         x = self.embedding(x)
@@ -35,74 +33,49 @@ transformer_model = TransformerModel(input_dim=13, num_classes=2)
 transformer_model.load_state_dict(torch.load('transformer_model.pth', map_location=torch.device('cpu')))
 transformer_model.eval()
 
-# Load other necessary data and objects
+# Load the scaler
 scaler = joblib.load('scaler.pkl')
 
-st.title('Cardiovascular Disease Prediction (Transformer)')
+# Your Streamlit app code continues...
 
-def user_input_features():
-    age = st.sidebar.slider('Age', 32, 81, 54)
-    totchol = st.sidebar.slider('Total Cholesterol', 107, 696, 200)
-    sysbp = st.sidebar.slider('Systolic Blood Pressure', 83, 295, 140)
-    diabp = st.sidebar.slider('Diastolic Blood Pressure', 30, 150, 89)
-    bmi = st.sidebar.slider('BMI', 14.43, 56.80, 26.77)
-    cursmoke = st.sidebar.selectbox('Current Smoker', [0, 1])
-    glucose = st.sidebar.slider('Glucose', 39, 478, 117)
-    diabetes = st.sidebar.selectbox('Diabetes', [0, 1])
-    heartrte = st.sidebar.slider('Heart Rate', 37, 220, 91)
-    cigpday = st.sidebar.slider('Cigarettes Per Day', 0, 90, 20)
-    bpmeds = st.sidebar.selectbox('On BP Meds', [0, 1])
-    stroke = st.sidebar.selectbox('Stroke', [0, 1])
-    hyp = st.sidebar.selectbox('Hypertension', [0, 1])
-    
-    data = {'AGE': age,
-            'TOTCHOL': totchol,
-            'SYSBP': sysbp,
-            'DIABP': diabp,
-            'BMI': bmi,
-            'CURSMOKE': cursmoke,
-            'GLUCOSE': glucose,
-            'DIABETES': diabetes,
-            'HEARTRTE': heartrte,
-            'CIGPDAY': cigpday,
-            'BPMEDS': bpmeds,
-            'STROKE': stroke,
-            'HYPERTEN': hyp}
-    
-    features = pd.DataFrame(data, index=[0])
-    return features
-
-input_data = user_input_features()
-
-# Display user input features
-st.subheader('User Input Parameters')
-st.write(input_data)
-
-try:
+# Function to make predictions and display results
+def predict_and_display(input_data):
     input_data_scaled = scaler.transform(input_data)
-except Exception as e:
-    st.error(f"Error in scaling input data: {e}")
-    st.stop()
+    input_tensor = torch.tensor(input_data_scaled, dtype=torch.float32)
+    
+    # Prediction
+    with torch.no_grad():
+        prediction = transformer_model(input_tensor).numpy()
+    
+    # Display prediction results
+    st.write(f"Prediction: {prediction}")
 
-# Prediction
-prediction = transformer_model(torch.tensor(input_data_scaled, dtype=torch.float32)).argmax(dim=1).item()
-prediction_proba = transformer_model(torch.tensor(input_data_scaled, dtype=torch.float32)).softmax(dim=1).detach().numpy()
+# Streamlit UI components
+st.title("Cardiovascular Disease Prediction (Transformer)")
+age = st.slider("Age", 32, 81, 54)
+totchol = st.slider("Total Cholesterol", 107, 696, 200)
+sysbp = st.slider("Systolic Blood Pressure", 83, 295, 140)
+diabp = st.slider("Diastolic Blood Pressure", 38, 150, 89)
+bmi = st.slider("BMI", 14.43, 56.80, 26.77)
+cursmoke = st.selectbox("Current Smoker", [0, 1])
+glucose = st.slider("Glucose", 39, 478, 117)
+diabetes = st.selectbox("Diabetes", [0, 1])
+heartrate = st.slider("Heart Rate", 37, 220, 91)
+cigpday = st.slider("Cigarettes Per Day", 0, 90, 20)
+bpmeds = st.selectbox("On BP Meds", [0, 1])
+stroke = st.selectbox("Stroke", [0, 1])
+hyperten = st.selectbox("Hypertension", [0, 1])
 
-# Display prediction
-st.subheader('Prediction')
-cvd_labels = np.array(['No Cardiovascular Disease', 'Cardiovascular Disease'])
-st.write(cvd_labels[prediction])
+# Collect input data
+input_data = np.array([[age, totchol, sysbp, diabp, bmi, cursmoke, glucose, diabetes, heartrate, cigpday, bpmeds, stroke, hyperten]])
 
-# Display prediction probability
-st.subheader('Prediction Probability')
-st.write(prediction_proba)
+# Predict and display results
+if st.button("Predict"):
+    predict_and_display(input_data)
 
-fig, ax = plt.subplots()
-ax.bar(cvd_labels, prediction_proba[0], color=['blue', 'red'])
-plt.xlabel('CVD Status')
-plt.ylabel('Probability')
-plt.title('Prediction Probability')
-st.pyplot(fig)
+# Feature Importances and ROC Curve (assuming you have precomputed these)
+# Add your existing logic here for displaying feature importances and ROC curve
+
 
 # Feature Importances
 st.subheader('Feature Importances (Transformer)')
