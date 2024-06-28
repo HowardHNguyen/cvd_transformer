@@ -66,17 +66,18 @@ def predict_and_display(input_data):
         st.write(f"Probabilities: {probabilities}")
         
         st.write(f"Prediction: {'CVD' if np.argmax(probabilities, axis=1)[0] == 1 else 'No CVD'}")
-        st.write(f"Prediction Probability: No CVD: {probabilities[0][0]:.4f}, CVD: {probabilities[0][1]:.4f}")
+        
+        # Plot Prediction Probability
+        fig, ax = plt.subplots()
+        categories = ['No CVD', 'CVD']
+        ax.bar(categories, probabilities[0], color=['blue', 'red'])
+        ax.set_ylabel('Probability')
+        ax.set_title('Prediction Probability')
+        st.pyplot(fig)
     
         # Feature Importances
         feature_importances = np.random.rand(13)  # Replace with actual feature importances calculation
         feature_names = ['AGE', 'TOTCHOL', 'SYSBP', 'DIABP', 'BMI', 'CURSMOKE', 'GLUCOSE', 'DIABETES', 'HEARTRTE', 'CIGPDAY', 'BPMEDS', 'STROKE', 'HYPERTEN']
-        importance_dict = {name: importance for name, importance in zip(feature_names, feature_importances)}
-    
-        st.write("Feature Importances:")
-        sorted_importances = sorted(importance_dict.items(), key=lambda item: item[1], reverse=True)
-        for feature, importance in sorted_importances:
-            st.write(f"{feature}: {importance:.4f}")
     
         # Plot Feature Importances
         fig, ax = plt.subplots()
