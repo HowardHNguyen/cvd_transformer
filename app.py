@@ -23,8 +23,20 @@ class TransformerModel(nn.Module):
 # Instantiate the model with the correct dimensions
 transformer_model = TransformerModel(input_dim=13, num_classes=2)
 
-# Load the state dict into the model without strict mode
+# Load the state dict
 state_dict = torch.load('transformer_model.pth', map_location=torch.device('cpu'))
+
+# Print the keys in the state dictionary
+print("State dict keys:")
+for key in state_dict.keys():
+    print(key, state_dict[key].shape)
+
+# Print the keys in the model's state dictionary
+print("\nModel state dict keys:")
+for key, param in transformer_model.state_dict().items():
+    print(key, param.shape)
+
+# Load the state dict into the model without strict mode to see the mismatch
 missing_keys, unexpected_keys = transformer_model.load_state_dict(state_dict, strict=False)
 
 # Print missing and unexpected keys
